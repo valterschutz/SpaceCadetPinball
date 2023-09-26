@@ -2892,7 +2892,8 @@ void control::BallDrainControl(MessageCode code, TPinballComponent* caller)
 				if (lite58->light_on())
 					lite58->Message(MessageCode::TLightResetAndTurnOff, 0.0);
 				else
-					TableG->BonusScore = 25000;
+					// TableG->BonusScore = 25000;
+					TableG->BonusScore = 0;
 			}
 		}
 	}

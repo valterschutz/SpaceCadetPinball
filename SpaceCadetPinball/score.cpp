@@ -125,6 +125,8 @@ void score::update(scoreStruct* score)
 	char scoreBuf[12]{};
 	if (score && score->DirtyFlag && score->Score <= 1000000000)
 	{
+		// Write score to shared memory
+		// TODO score->Score
 		score->DirtyFlag = false;
 		int x = score->Width + score->OffsetX;
 		int y = score->OffsetY;

@@ -156,6 +156,9 @@ void gdrv_bitmap8::BlitToTexture()
 	assertm(result == 0, "Updating non-streaming texture");
 	assertm(static_cast<unsigned>(pitch) == Width * sizeof(ColorRgba), "Padding on vScreen texture");
 
+	// Write pixels to shared memory
+	// TODO
+
 	std::memcpy(lockedPixels, BmpBufPtr1, Width * Height * sizeof(ColorRgba));
 
 	SDL_UnlockTexture(Texture);

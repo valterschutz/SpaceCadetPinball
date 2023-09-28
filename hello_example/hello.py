@@ -19,19 +19,17 @@ def set_environ():
     os.environ["DISP_WIDTH"] = str(WIDTH)
     os.environ["DISP_HEIGHT"] = str(HEIGHT)
 
-def create_sem():
-    semaphore = ctypes.CDLL(None)
-    sem = semaphore.sem_open("/semaphore", 0)
-    return semaphore, sem
-
 def main():
     make()
 
     # set this so we can use it in the c program.
     set_environ()
 
-    # create semaphore to sync with c program.
-    semaphore, sem = create_sem()
+
+    init_sem = np.array([1], dtype=np.int32)
+    shm_sem = shared_memory.SharedMemory("sem", create=True, size=init_sem.nbytes)
+    sem = np.ndarray(init_sem.shape, dtype=np.int32, buffer=shm_sem.buf)
+    sem[:] = init_sem[:]
 
     init_score = np.array([0])
     shm_score = shared_memory.SharedMemory("score", create=True, size=init_score.nbytes)
@@ -42,10 +40,16 @@ def main():
     shm_pixels = shared_memory.SharedMemory("pixels", create=True, size=init_pixels.nbytes)
     pixels = np.ndarray(init_pixels.shape, dtype=np.double, buffer=shm_pixels.buf)
     pixels[:] = init_pixels[:]
-    #semaphore.sem_post(sem) #TODO
+
     # Run C code
     c_program_path = './hello'
     process = subprocess.Popen([c_program_path])
+    for i in range(10):
+        while (True):
+            if sem[0]==0:
+                print(f"Hi from Python: {i}")
+                sem[0]=1
+                break;
     process.wait()
 
     print(f"Pixels after hello finished: {pixels}")
@@ -54,7 +58,11 @@ def main():
     shm_score.close()
     shm_score.unlink()
 
+    shm_sem.close()
+    shm_sem.unlink()
+
     shm_pixels.close()
     shm_pixels.unlink()
+
 
 main()

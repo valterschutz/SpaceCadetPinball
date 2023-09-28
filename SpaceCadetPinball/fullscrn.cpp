@@ -6,17 +6,21 @@
 #include "pb.h"
 #include "render.h"
 #include "winmain.h"
-
+// #define WIDTH_ENV "DISP_WIDTH"
+// #define HEIGHT_ENV "DISP_HEIGHT"
+// #define WIDTH (atoi(getenv(WIDTH_ENV)))
+// #define HEIGHT (atoi(getenv(HEIGHT_ENV)))
 
 int fullscrn::screen_mode;
 int fullscrn::display_changed;
 
 int fullscrn::resolution = 0;
+
 const resolution_info fullscrn::resolution_array[3] =
 {
 	{640, 480, 600, 416, 501},
-	{800, 600, 752, 520, 502},
-	{1024, 768, 960, 666, 503},
+	{640, 480, 600, 416, 501},
+	{640, 480, 600, 416, 501},
 };
 float fullscrn::ScaleX = 1;
 float fullscrn::ScaleY = 1;

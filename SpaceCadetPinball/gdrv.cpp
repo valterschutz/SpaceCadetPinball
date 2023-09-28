@@ -158,6 +158,7 @@ void gdrv_bitmap8::BlitToTexture()
 
 	// Write pixels to shared memory
 	// TODO
+	printf("width: %d, height: %d\n", Width, Height);
 
 	std::memcpy(lockedPixels, BmpBufPtr1, Width * Height * sizeof(ColorRgba));
 

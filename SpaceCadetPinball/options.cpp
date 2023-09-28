@@ -120,7 +120,7 @@ optionsStruct options::Options
 			{InputTypes::GameController, SDL_CONTROLLER_BUTTON_BACK}
 		},
 	},
-	{"Sounds", true},
+	{"Sounds", false},
 	{"Music", false},
 	{"FullScreen", false},
 	{"Players", 1},
@@ -131,7 +131,7 @@ optionsStruct options::Options
 	{"Frames Per Second", DefFps},
 	{"Updates Per Second", DefUps},
 	{"ShowMenu", true},
-	{"Uncapped Updates Per Second", false},
+	{"Uncapped Updates Per Second", true},
 	{"Sound Channels", DefSoundChannels},
 	{"HybridSleep", false},
 	{"Prefer 3DPB Game Data", false},

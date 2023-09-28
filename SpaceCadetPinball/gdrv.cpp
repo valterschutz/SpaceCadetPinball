@@ -8,6 +8,10 @@
 #include "winmain.h"
 #include "TTextBox.h"
 #include "fullscrn.h"
+#include <fcntl.h>      // for shm_open
+#include <sys/mman.h>   // for mmap, PROT_*, MAP_*
+#include <sys/stat.h>   // for mode constants
+#include <unistd.h>     // for close
 
 ColorRgba gdrv::current_palette[256]{};
 
@@ -141,6 +145,14 @@ void gdrv_bitmap8::CreateTexture(const char* scaleHint, int access)
 	SDL_SetTextureBlendMode(Texture, SDL_BLENDMODE_NONE);
 }
 
+void printBits(unsigned char x) {
+    for (int i = 7; i >= 0; i--) {
+        // Use a bitwise shift and bitwise AND to extract each bit
+        int bit = (x >> i) & 1;
+        printf("%d", bit);
+    }
+}
+
 void gdrv_bitmap8::BlitToTexture()
 {
 	assertm(Texture, "Updating null texture");
@@ -157,10 +169,23 @@ void gdrv_bitmap8::BlitToTexture()
 	assertm(static_cast<unsigned>(pitch) == Width * sizeof(ColorRgba), "Padding on vScreen texture");
 
 	// Write pixels to shared memory
-	// TODO
-	printf("width: %d, height: %d\n", Width, Height);
-
-	std::memcpy(lockedPixels, BmpBufPtr1, Width * Height * sizeof(ColorRgba));
+	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
+	if (pixels_fd==-1) {
+	    perror("shm_open");
+	    exit(1);
+	}
+	size_t shm_size = Width * Height * sizeof(ColorRgba);
+	void* pixels_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, pixels_fd, 0);
+	if (pixels_ptr == MAP_FAILED)
+	{
+	    perror("mmap");
+	    exit(1);
+	}
+	int* pixels = (int*) pixels_ptr;
+	std::memcpy(pixels, BmpBufPtr1, shm_size);
+	// Finished writing to shared memory
+	
+	std::memcpy(lockedPixels, BmpBufPtr1, shm_size);
 
 	SDL_UnlockTexture(Texture);
 }

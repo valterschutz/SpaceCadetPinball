@@ -7,6 +7,10 @@
 #include "GroupData.h"
 #include "pb.h"
 #include "render.h"
+#include <fcntl.h>      // for shm_open
+#include <sys/mman.h>   // for mmap, PROT_*, MAP_*
+#include <sys/stat.h>   // for mode constants
+#include <unistd.h>     // for close
 
 
 score_msg_font_type* score::msg_fontp;
@@ -126,7 +130,22 @@ void score::update(scoreStruct* score)
 	if (score && score->DirtyFlag && score->Score <= 1000000000)
 	{
 		// Write score to shared memory
-		// TODO score->Score
+		int score_fd = shm_open("/score", O_RDWR, 0666);
+		if (score_fd==-1) {
+		    perror("shm_open");
+		    exit(1);
+		}
+		size_t shm_size = sizeof(score->Score);
+		void* score_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, score_fd, 0);
+		if (score_ptr == MAP_FAILED)
+		{
+		    perror("mmap");
+		    exit(1);
+		}
+		int* shared_score = (int*) score_ptr;
+
+		std::memcpy(shared_score, &score->Score, shm_size);
+		// Finished writing to shared memory
 		score->DirtyFlag = false;
 		int x = score->Width + score->OffsetX;
 		int y = score->OffsetY;

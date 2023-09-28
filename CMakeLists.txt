@@ -195,6 +195,7 @@ endif(WIN32)
 
 add_executable(SpaceCadetPinball ${SOURCE_FILES})
 
+
 # Skip pch on foreign code
 set_source_files_properties(
         SpaceCadetPinball/imgui.cpp
@@ -215,7 +216,8 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.16.0" OR ${CMAKE_VERSION} VERSION_EQUAL "
             )
 endif()
 
-target_link_libraries(SpaceCadetPinball ${SDL2_LIBRARY} ${SDL2_MIXER_LIBRARY})
+find_package(Threads REQUIRED)
+target_link_libraries(SpaceCadetPinball PRIVATE Threads::Threads rt ${SDL2_LIBRARY} ${SDL2_MIXER_LIBRARY})
 
 # On Windows, copy DLL to output
 if(WIN32)

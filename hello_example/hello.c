@@ -3,7 +3,6 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <semaphore.h>
 
 #define SCORE_BUF_SIZE 1
 #define SEM_BUF_SIZE 1
@@ -25,18 +24,13 @@ int main(int argc, char *argv[])
     }
 
     // Map the shared memory into the address space
-    void *sem_ptr = mmap(NULL, sizeof(double) * SEM_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, sem_fd, 0);
-    void *score_ptr = mmap(NULL, sizeof(double) * SCORE_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, score_fd, 0);
-    void *pixels_ptr = mmap(NULL, sizeof(double) * PIXELS_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pixels_fd, 0);
-    if (sem_ptr == MAP_FAILED | score_ptr == MAP_FAILED | score_ptr == MAP_FAILED) {
+    int *sem = mmap(NULL, sizeof(double) * SEM_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, sem_fd, 0);
+    double *score = mmap(NULL, sizeof(double) * SCORE_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, score_fd, 0);
+    double *pixels = mmap(NULL, sizeof(double) * PIXELS_BUF_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pixels_fd, 0);
+    if (sem == MAP_FAILED | score == MAP_FAILED | score == MAP_FAILED) {
         perror("mmap");
         exit(1);
     }
-
-    // Access and modify the shared memory
-    int *sem = (int *)sem_ptr;
-    double *score = (double *)score_ptr;
-    double *pixels = (double *)pixels_ptr;
 
     for (int j = 0; j < 10; j++) {
 	while (1){
@@ -55,9 +49,9 @@ int main(int argc, char *argv[])
     }
 
     // Unmap and close the shared memory
-    munmap(sem_ptr, sizeof(double) * SEM_BUF_SIZE);
-    munmap(score_ptr, sizeof(double) * SCORE_BUF_SIZE);
-    munmap(pixels_ptr, sizeof(double) * PIXELS_BUF_SIZE);
+    munmap(sem, sizeof(double) * SEM_BUF_SIZE);
+    munmap(score, sizeof(double) * SCORE_BUF_SIZE);
+    munmap(pixels, sizeof(double) * PIXELS_BUF_SIZE);
     close(sem_fd);
     close(score_fd);
     close(pixels_fd);

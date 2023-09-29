@@ -306,7 +306,7 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
 	    case '!':
             // printf("inside !\n");
 	        // Simulate middle mouse button press
-	        event->type = SDL_MOUSEBUTTONUP;
+	        event->type = SDL_MOUSEBUTTONDOWN;
 			event->button.button = SDL_BUTTON_MIDDLE;
 			event->key.state = SDL_PRESSED;
 			event->key.timestamp = SDL_GetTicks();

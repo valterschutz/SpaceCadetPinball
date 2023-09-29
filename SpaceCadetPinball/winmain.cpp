@@ -10,10 +10,6 @@
 #include "Sound.h"
 #include "translations.h"
 #include "font_selection.h"
-#include <fcntl.h>      // for shm_open
-#include <sys/mman.h>   // for mmap, PROT_*, MAP_*
-#include <sys/stat.h>   // for mode constants
-#include <unistd.h>     // for close
 
 constexpr const char* winmain::Version;
 
@@ -836,56 +832,6 @@ void winmain::RenderUi()
 
 int winmain::event_handler(SDL_Event* event)
 {
-
-	// Read action from shared memory
-	int action_fd = shm_open("/action", O_RDWR, 0666);
-	if (action_fd==-1) {
-	    perror("shm_open");
-	    exit(1);
-	}
-	size_t shm_size = sizeof(char);
-	void* action_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, action_fd, 0);
-	if (action_ptr == MAP_FAILED)
-	{
-	    perror("mmap");
-	    exit(1);
-	}
-	char* action_from_controller = (char*) action_ptr;
-	printf("Current action from controller: %c\n", *action_from_controller);
-	// Finished reading from shared memory
-	// Change SDL_Event according to action
-	switch (*action_from_controller) {
-	    case 'L':
-			// Simulate left mouse button press
-			event->type = SDL_MOUSEBUTTONDOWN;
-			event->button.button = SDL_BUTTON_LEFT;
-			event->button.state = SDL_PRESSED;
-			event->button.timestamp = SDL_GetTicks();
-			break;
-		case 'R':
-			// Simulate right mouse button press
-			event->type = SDL_MOUSEBUTTONDOWN;
-			event->button.button = SDL_BUTTON_RIGHT;
-			event->button.state = SDL_PRESSED;
-			event->button.timestamp = SDL_GetTicks();
-			break;
-	  //   case '!':
-	  //       // Simulate space bar press
-	  //       event->type = SDL_KEYDOWN;
-			// event->key.keysym.sym = SDLK_SPACE;
-			// event->key.keysym.mod = 0;
-			// // event->key.state = SDL_PRESSED;
-			// event->key.timestamp = SDL_GetTicks();
-			// break;
-	    default:
-	        break;
-	}
-	
-	event->type = SDL_MOUSEBUTTONDOWN;
-	event->button.button = SDL_BUTTON_LEFT;  // Set the button to left mouse button
-	event->button.state = SDL_PRESSED;       // Set the state to pressed
-	event->button.timestamp = SDL_GetTicks(); // Set the timestamp (you can use SDL_GetTicks() to get the current time)
-
 	auto inputDown = false;
 	switch (event->type)
 	{
@@ -896,6 +842,7 @@ int winmain::event_handler(SDL_Event* event)
 		break;
 	default: break;
 	}
+
 	if (!options::WaitingForInput() || !inputDown)
 		ImGui_ImplSDL2_ProcessEvent(event);
 
@@ -1094,13 +1041,11 @@ int winmain::event_handler(SDL_Event* event)
 	default: ;
 	}
 
-	close(action_fd);
 	return 1;
 }
 
 int winmain::ProcessWindowMessages()
 {
-	// printf("processwindowmessages running\n");
 	static auto idleWait = 0;
 	SDL_Event event;
 	if (has_focus)

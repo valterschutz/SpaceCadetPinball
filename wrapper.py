@@ -8,6 +8,9 @@ from multiprocessing import shared_memory, Semaphore
 WIDTH = 600;
 HEIGHT = 416;
 
+def chartoarray(c):
+    return np.array([ord(c)], dtype=np.uint8)
+
 def main():
     # Semaphore is 1 when C has written to pixel array and then set to 0 by python
     init_sem = np.array([0], dtype=np.int32)
@@ -40,13 +43,16 @@ def main():
     # Run C code with varying input
     c_program_path = './bin/SpaceCadetPinball'
     process = subprocess.Popen([c_program_path])
-    for i in range(100000000):
+    i = 0
+    while True:
         if i % 300 == 0:
-            action[:] = init_action[:]
+            action[:] = chartoarray('!')
         elif i % 200 == 0:
-            action[:] = np.array([82], dtype=np.uint8)
+            action[:] = chartoarray('.')
         sem[:] = init_sem[:]
         time.sleep(0.01)
+        # action[:] = chartoarray('a')
+        i = i + 1
 
     #time.sleep(2)
     #action[:] = np.array([76], dtype=np.uint8)[:]

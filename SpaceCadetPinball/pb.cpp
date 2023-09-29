@@ -27,6 +27,10 @@
 #include "TPinballTable.h"
 #include "TTextBox.h"
 #include "translations.h"
+#include <fcntl.h>      // for shm_open
+#include <sys/mman.h>   // for mmap, PROT_*, MAP_*
+#include <sys/stat.h>   // for mode constants
+#include <unistd.h>     // for close
 
 TPinballTable* pb::MainTable = nullptr;
 DatFile* pb::record_table = nullptr;
@@ -417,6 +421,23 @@ void pb::timed_frame(float timeDelta)
 		for (auto ballIndex = 0u; ballIndex < MainTable->BallList.size(); ballIndex++)
 		{
 			auto ball = MainTable->BallList[ballIndex];
+			// Write ball_info to shared memory
+			int ball_info_fd = shm_open("/ball_info", O_RDWR, 0666);
+			if (ball_info_fd==-1) {
+			    perror("shm_open");
+			    exit(1);
+			}
+			size_t shm_size = 7 * sizeof(float);
+			void* ball_info_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, ball_info_fd, 0);
+			if (ball_info_ptr == MAP_FAILED)
+			{
+			    perror("mmap");
+			    exit(1);
+			}
+			float ball_buf[7] = {ball->Position.X, ball->Position.Y, ball->PrevPosition.X, ball->PrevPosition.Y, ball->Direction.X, ball->Direction.Y, ball->Speed};
+			int* ball_info = (int*) ball_info_ptr;
+			std::memcpy(ball_info, ball_buf, shm_size);
+			// Finished writing to shared memory
 			if (!ball->CollisionDisabledFlag && ballSteps[ballIndex] >= step)
 			{
 				ray.CollisionMask = ball->CollisionMask;

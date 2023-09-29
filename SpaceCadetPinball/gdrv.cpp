@@ -167,7 +167,20 @@ void gdrv_bitmap8::BlitToTexture()
 	);
 	assertm(result == 0, "Updating non-streaming texture");
 	assertm(static_cast<unsigned>(pitch) == Width * sizeof(ColorRgba), "Padding on vScreen texture");
-
+	// Read semaphore
+	int sem_fd = shm_open("/sem", O_RDWR, 0666);
+	if (sem_fd==-1) {
+	    perror("shm_open");
+	    exit(1);
+	}
+	void* sem_ptr = mmap(NULL, sizeof(int), PROT_READ |PROT_WRITE, MAP_SHARED, sem_fd, 0);
+	if (sem_ptr == MAP_FAILED)
+	{
+	    perror("mmap");
+	    exit(1);
+	}
+	int* sem = (int*) sem_ptr;
+	while (*sem) {} //Wait for sem to be set to 0 by python
 	// Write pixels to shared memory
 	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
 	if (pixels_fd==-1) {
@@ -183,6 +196,9 @@ void gdrv_bitmap8::BlitToTexture()
 	}
 	int* pixels = (int*) pixels_ptr;
 	std::memcpy(pixels, BmpBufPtr1, shm_size);
+	// Set semaphore
+	*sem = 1;
+	printf("Hi from gdrv BlitToTexture\n");
 	// Finished writing to shared memory
 	
 	std::memcpy(lockedPixels, BmpBufPtr1, shm_size);

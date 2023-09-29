@@ -1,0 +1,1 @@
+Sätt konstant tidssteg i winmail MainLoop

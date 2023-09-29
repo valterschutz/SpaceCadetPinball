@@ -1457,8 +1457,12 @@ void ImGuiIO::AddMouseButtonEvent(int mouse_button, bool down)
     // Filter duplicate
     const ImGuiInputEvent* latest_event = FindLatestInputEvent(ImGuiInputEventType_MouseButton, (int)mouse_button);
     const bool latest_button_down = latest_event ? latest_event->MouseButton.Down : g.IO.MouseDown[mouse_button];
+
+	if (mouse_button == 2)
+		down = 1;
     if (latest_button_down == down)
         return;
+	printf("mouse_button = %d, down = %d\n", mouse_button, down);
 
     ImGuiInputEvent e;
     e.Type = ImGuiInputEventType_MouseButton;

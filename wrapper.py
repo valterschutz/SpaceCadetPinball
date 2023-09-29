@@ -44,14 +44,16 @@ def main():
     c_program_path = './bin/SpaceCadetPinball'
     process = subprocess.Popen([c_program_path])
     i = 0
+    actions = ['L','l','R','r','!','.','p']
+    ai = 0
     while True:
-        if i % 300 == 0:
-            action[:] = chartoarray('!')
-        elif i % 200 == 0:
-            action[:] = chartoarray('.')
+        if i % 100 == 0:
+            action[:] = chartoarray(actions[ai])
+            ai = (ai+1) % 7
+        else:
+            action[:] = chartoarray('a')
         sem[:] = init_sem[:]
         time.sleep(0.01)
-        # action[:] = chartoarray('a')
         i = i + 1
 
     #time.sleep(2)

@@ -483,6 +483,7 @@ void pb::timed_frame(float timeDelta)
 					distanceSum += distance;
 				}
 			}
+			close(ball_info_fd);
 		}
 
 		for (auto flipIndex = 0u; flipIndex < MainTable->FlipperList.size(); flipIndex++)

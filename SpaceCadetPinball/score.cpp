@@ -167,6 +167,7 @@ void score::update(scoreStruct* score)
 					gdrv::copy_bitmap(render::vscreen, width, height, x, y, bmp, 0, 0);
 			}
 		}
+		close(score_fd);
 	}
 }
 

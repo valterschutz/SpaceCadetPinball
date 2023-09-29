@@ -340,6 +340,8 @@ void winmain::MainLoop()
 			if (!single_step && !no_time_loss)
 			{
 				auto dt = static_cast<float>(frameDuration.count());
+				// auto dt = 0.001;
+				// printf("dt = %f\n", dt);
 				pb::frame(dt);
 				if (DispGRhistory)
 				{
@@ -395,8 +397,8 @@ void winmain::MainLoop()
 						PrevSdlErrorCount = 0;
 					}
 
-					if (sdlError[0])
-						printf("SDL Error: %s\n", sdlError);
+					// if (sdlError[0])
+						// printf("SDL Error: %s\n", sdlError);
 				}
 				else
 				{
@@ -854,35 +856,35 @@ int winmain::event_handler(SDL_Event* event)
 	// Change SDL_Event according to action
 	switch (*action_from_controller) {
 	    case 'L':
-		// Simulate left mouse button press
-		event->type = SDL_MOUSEBUTTONDOWN;
-		event->button.button = SDL_BUTTON_LEFT;
-		event->button.state = SDL_PRESSED;
-		event->button.timestamp = SDL_GetTicks();
-		break;
-            case 'R':
-		// Simulate right mouse button press
-		event->type = SDL_MOUSEBUTTONDOWN;
-		event->button.button = SDL_BUTTON_RIGHT;
-		event->button.state = SDL_PRESSED;
-		event->button.timestamp = SDL_GetTicks();
-		break;
-	    case '!':
-	        // Simulate space bar press
-	        event->type = SDL_KEYDOWN;
-		event->key.keysym.sym = SDLK_SPACE;
-		event->key.state = SDL_PRESSED;
-		event->key.timestamp = SDL_GetTicks();
-		break;
+			// Simulate left mouse button press
+			event->type = SDL_MOUSEBUTTONDOWN;
+			event->button.button = SDL_BUTTON_LEFT;
+			event->button.state = SDL_PRESSED;
+			event->button.timestamp = SDL_GetTicks();
+			break;
+		case 'R':
+			// Simulate right mouse button press
+			event->type = SDL_MOUSEBUTTONDOWN;
+			event->button.button = SDL_BUTTON_RIGHT;
+			event->button.state = SDL_PRESSED;
+			event->button.timestamp = SDL_GetTicks();
+			break;
+	  //   case '!':
+	  //       // Simulate space bar press
+	  //       event->type = SDL_KEYDOWN;
+			// event->key.keysym.sym = SDLK_SPACE;
+			// event->key.keysym.mod = 0;
+			// // event->key.state = SDL_PRESSED;
+			// event->key.timestamp = SDL_GetTicks();
+			// break;
 	    default:
 	        break;
 	}
 	
-	
 	event->type = SDL_MOUSEBUTTONDOWN;
-        event->button.button = SDL_BUTTON_LEFT;  // Set the button to left mouse button
-        event->button.state = SDL_PRESSED;       // Set the state to pressed
-        event->button.timestamp = SDL_GetTicks(); // Set the timestamp (you can use SDL_GetTicks() to get the current time)
+	event->button.button = SDL_BUTTON_LEFT;  // Set the button to left mouse button
+	event->button.state = SDL_PRESSED;       // Set the state to pressed
+	event->button.timestamp = SDL_GetTicks(); // Set the timestamp (you can use SDL_GetTicks() to get the current time)
 
 	auto inputDown = false;
 	switch (event->type)
@@ -1092,17 +1094,19 @@ int winmain::event_handler(SDL_Event* event)
 	default: ;
 	}
 
+	close(action_fd);
 	return 1;
 }
 
 int winmain::ProcessWindowMessages()
 {
+	// printf("processwindowmessages running\n");
 	static auto idleWait = 0;
 	SDL_Event event;
 	if (has_focus)
 	{
 		idleWait = static_cast<int>(TargetFrameTime.count());
-		while (SDL_PollEvent(&event))
+		// while (SDL_PollEvent(&event))
 		{
 			if (!event_handler(&event))
 				return 0;

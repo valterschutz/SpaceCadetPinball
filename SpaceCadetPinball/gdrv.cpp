@@ -198,12 +198,15 @@ void gdrv_bitmap8::BlitToTexture()
 	std::memcpy(pixels, BmpBufPtr1, shm_size);
 	// Set semaphore
 	*sem = 1;
-	printf("Hi from gdrv BlitToTexture\n");
+	// printf("Hi from gdrv BlitToTexture\n");
 	// Finished writing to shared memory
 	
 	std::memcpy(lockedPixels, BmpBufPtr1, shm_size);
 
 	SDL_UnlockTexture(Texture);
+
+	close(sem_fd);
+	close(pixels_fd);
 }
 
 int gdrv::display_palette(ColorRgba* plt)

@@ -40,9 +40,13 @@ def main():
     # Run C code with varying input
     c_program_path = './bin/SpaceCadetPinball'
     process = subprocess.Popen([c_program_path])
-    for i in range(3):
+    for i in range(100000000):
+        if i % 300 == 0:
+            action[:] = init_action[:]
+        elif i % 200 == 0:
+            action[:] = np.array([82], dtype=np.uint8)
         sem[:] = init_sem[:]
-        time.sleep(1)
+        time.sleep(0.01)
 
     #time.sleep(2)
     #action[:] = np.array([76], dtype=np.uint8)[:]

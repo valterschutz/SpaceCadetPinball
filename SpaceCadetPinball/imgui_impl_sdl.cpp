@@ -252,90 +252,80 @@ static void ImGui_ImplSDL2_UpdateKeyModifiers(SDL_Keymod sdl_key_mods)
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 // If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
+//
+
+void getactionfromcontroller(SDL_Event* event) {
+    // Read action from shared memory
+    int action_fd = shm_open("/action", O_RDWR, 0666);
+    if (action_fd==-1) {
+        perror("shm_open");
+        exit(1);
+    }
+    size_t shm_size = sizeof(char);
+    void* action_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, action_fd, 0);
+    if (action_ptr == MAP_FAILED)
+    {
+        perror("mmap");
+        exit(1);
+    }
+    char* action_from_controller = (char*) action_ptr;
+
+    // Finished reading from shared memory
+    // Change SDL_Event according to action
+    switch (*action_from_controller) {
+        case 'L':
+            // Simulate left mouse button press
+            event->type = SDL_MOUSEBUTTONDOWN;
+            event->button.button = SDL_BUTTON_LEFT;
+            event->button.state = SDL_PRESSED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case 'l':
+            // Simulate left mouse button release
+            event->type = SDL_MOUSEBUTTONUP;
+            event->button.button = SDL_BUTTON_LEFT;
+            event->button.state = SDL_RELEASED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case 'R':
+            // Simulate right mouse button press
+            event->type = SDL_MOUSEBUTTONDOWN;
+            event->button.button = SDL_BUTTON_RIGHT;
+            event->button.state = SDL_PRESSED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case 'r':
+            // Simulate right mouse button release
+            event->type = SDL_MOUSEBUTTONUP;
+            event->button.button = SDL_BUTTON_RIGHT;
+            event->button.state = SDL_RELEASED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case '!':
+            // Simulate middle mouse button press
+            event->type = SDL_MOUSEBUTTONDOWN;
+                    event->button.button = SDL_BUTTON_MIDDLE;
+                    event->key.state = SDL_PRESSED;
+                    event->key.timestamp = SDL_GetTicks();
+                    break;
+        case '.':
+            // Simulate middle mouse button release
+            event->type = SDL_MOUSEBUTTONUP;
+                    event->button.button = SDL_BUTTON_MIDDLE;
+                    event->key.state = SDL_RELEASED;
+                    event->key.timestamp = SDL_GetTicks();
+                    break;
+    }
+    
+    close(action_fd);
+}
+
 bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
 
-	// Read action from shared memory
-	int action_fd = shm_open("/action", O_RDWR, 0666);
-	if (action_fd==-1) {
-	    perror("shm_open");
-	    exit(1);
-	}
-	size_t shm_size = sizeof(char);
-	void* action_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, action_fd, 0);
-	if (action_ptr == MAP_FAILED)
-	{
-	    perror("mmap");
-	    exit(1);
-	}
-	char* action_from_controller = (char*) action_ptr;
-	// printf("Current action from controller: %c\n", *action_from_controller);
-	// Finished reading from shared memory
-	// Change SDL_Event according to action
-	switch (*action_from_controller) {
-	    case 'L':
-                // Simulate left mouse button press
-                event->type = SDL_MOUSEBUTTONDOWN;
-                event->button.button = SDL_BUTTON_LEFT;
-                event->button.state = SDL_PRESSED;
-                event->button.timestamp = SDL_GetTicks();
-                break;
-	    case 'l':
-                // Simulate left mouse button release
-                event->type = SDL_MOUSEBUTTONUP;
-                event->button.button = SDL_BUTTON_LEFT;
-                event->button.state = SDL_RELEASED;
-                event->button.timestamp = SDL_GetTicks();
-                break;
-            case 'R':
-                // Simulate right mouse button press
-                event->type = SDL_MOUSEBUTTONDOWN;
-                event->button.button = SDL_BUTTON_RIGHT;
-                event->button.state = SDL_PRESSED;
-                event->button.timestamp = SDL_GetTicks();
-                break;
-            case 'r':
-                // Simulate right mouse button release
-                event->type = SDL_MOUSEBUTTONUP;
-                event->button.button = SDL_BUTTON_RIGHT;
-                event->button.state = SDL_RELEASED;
-                event->button.timestamp = SDL_GetTicks();
-                break;
-	    case '!':
-            // printf("inside !\n");
-	        // Simulate middle mouse button press
-	        event->type = SDL_MOUSEBUTTONDOWN;
-			event->button.button = SDL_BUTTON_MIDDLE;
-			event->key.state = SDL_PRESSED;
-			event->key.timestamp = SDL_GetTicks();
-			break;
-	    case '.':
-            // printf("inside .\n");
-	        // Simulate middle mouse button release
-	        event->type = SDL_MOUSEBUTTONUP;
-			event->button.button = SDL_BUTTON_MIDDLE;
-			event->key.state = SDL_RELEASED;
-			event->key.timestamp = SDL_GetTicks();
-			break;
-     //        case '!':
-     //            event->type = SDL_KEYDOWN;
-     //            event->key.keysym.sym = SDLK_SPACE;
-     //            event->key.keysym.mod = 0;
-     //            event->key.state = SDL_PRESSED;
-     //            break;
-     //        case '.':
-     //            event->type = SDL_KEYUP;
-     //            event->key.keysym.sym = SDLK_SPACE;
-     //            event->key.keysym.mod = 0;
-     //            event->key.state = SDL_RELEASED;
-     //            break;
-	    // default:
-	    //     break;
-	}
-    
-    close(action_fd);
+    // getactionfromcontroller(event);
 
     switch (event->type)
     {
@@ -362,10 +352,8 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
             if (event->button.button == SDL_BUTTON_X2) { mouse_button = 4; }
             if (mouse_button == -1)
                 break;
-            // printf("mousebutton pressed %d\n", mouse_button);
             io.AddMouseButtonEvent(mouse_button, (event->type == SDL_MOUSEBUTTONDOWN));
             bd->MouseButtonsDown = (event->type == SDL_MOUSEBUTTONDOWN) ? (bd->MouseButtonsDown | (1 << mouse_button)) : (bd->MouseButtonsDown & ~(1 << mouse_button));
-            // printf("bd->MouseButtonDown = %d\n", bd->MouseButtonsDown);
             return true;
         }
         case SDL_TEXTINPUT:
@@ -379,7 +367,7 @@ bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)
             ImGui_ImplSDL2_UpdateKeyModifiers((SDL_Keymod)event->key.keysym.mod);
             ImGuiKey key = ImGui_ImplSDL2_KeycodeToImGuiKey(event->key.keysym.sym);
             io.AddKeyEvent(key, (event->type == SDL_KEYDOWN));
-            // io.SetKeyEventNativeData(key, event->key.keysym.sym, event->key.keysym.scancode, event->key.keysym.scancode); // To support legacy indexing (<1.87 user code). Legacy backend uses SDLK_*** as indices to IsKeyXXX() functions.
+            io.SetKeyEventNativeData(key, event->key.keysym.sym, event->key.keysym.scancode, event->key.keysym.scancode); // To support legacy indexing (<1.87 user code). Legacy backend uses SDLK_*** as indices to IsKeyXXX() functions.
             return true;
         }
         case SDL_WINDOWEVENT:

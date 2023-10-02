@@ -1051,7 +1051,7 @@ int winmain::ProcessWindowMessages()
 	if (has_focus)
 	{
 		idleWait = static_cast<int>(TargetFrameTime.count());
-		// while (SDL_PollEvent(&event))
+		while (SDL_PollEvent(&event))
 		{
 			if (!event_handler(&event))
 				return 0;

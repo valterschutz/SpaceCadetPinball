@@ -4,6 +4,7 @@ import ctypes
 import numpy as np
 import time
 from multiprocessing import shared_memory, Semaphore
+from PIL import Image
 
 WIDTH = 600;
 HEIGHT = 416;
@@ -46,39 +47,41 @@ def main():
     i = 0
     actions = ['L','l','R','r','!','.','p']
     ai = 0
-    while True:
-        if i % 100 == 0:
-            action[:] = chartoarray(actions[ai])
-            ai = (ai+1) % 7
-        else:
-            action[:] = chartoarray('a')
-        sem[:] = init_sem[:]
-        time.sleep(0.01)
-        i = i + 1
+    try:
+        while True:
+            if i % 100 == 0:
+                action[:] = chartoarray(actions[ai])
+                ai = (ai+1) % 7
+            else:
+                action[:] = chartoarray('a')
+            sem[:] = init_sem[:]
+            time.sleep(0.01)
+            i = i + 1
+            print(i)
+    except Exception as e:
+        pass
+    finally:
+        process.kill()
+      
+        reshaped_array = pixels.astype(np.uint8).reshape((HEIGHT, WIDTH, 4))
+        plot_ascii_table = True
+        if plot_ascii_table:
+            ascii_characters = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@']
+            ascii_art = np.vectorize(lambda x: ascii_characters[x])(reshaped_array[::10, ::10, 0]//26)
+            ascii_art = '\n'.join([''.join(row) for row in ascii_art])
+            print(ascii_art)
 
-    #time.sleep(2)
-    #action[:] = np.array([76], dtype=np.uint8)[:]
-    #time.sleep(2)
+        print(f"\n                    SCORE: {score[0]} ")
 
-    # Extract pixels and score
-    reshaped_array = pixels.astype(np.uint8).reshape((HEIGHT, WIDTH, 4))
-    plot_ascii_table = True
-    if plot_ascii_table:
-        ascii_characters = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@']
-        ascii_art = np.vectorize(lambda x: ascii_characters[x])(reshaped_array[::10, ::10, 0]//26)
-        ascii_art = '\n'.join([''.join(row) for row in ascii_art])
-        print(ascii_art)
+        save_array = pixels.astype(np.uint8).reshape((HEIGHT, WIDTH, 4))[:,:,:3]
+        im = Image.fromarray(save_array)
+        pooled_im = im.resize((WIDTH//2,HEIGHT//2))
+        pooled_im.save('pixels.png')
 
-    print(f"\n                    SCORE: {score[0]} ")
-    
-    # Kill the game
-    process.terminate()
-    time.sleep(1)
-    process.kill()
-    
-    # Unlink our shared memory
-    shm_objs = [shm_sem, shm_action, shm_score, shm_ball_info, shm_pixels]
-    for shm_obj in shm_objs:
-        shm_obj.unlink()
+        shm_objs = [shm_sem, shm_action, shm_score, shm_ball_info, shm_pixels]
+        for shm_obj in shm_objs:
+            shm_obj.unlink()
+        time.sleep(1)
+        process.terminate()
 
 main()

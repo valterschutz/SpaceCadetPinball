@@ -23,42 +23,51 @@ class BallDetectionCNN(nn.Module):
     def __init__(self):
         super(BallDetectionCNN, self).__init__()
         
-        lin_size = int(SAVED_WIDTH/(2**3)) * int(SAVED_HEIGHT/(2**3)) * 64
+        lin_size = int(SAVED_WIDTH/(2**3)) * int(SAVED_HEIGHT/(2**3)) * 128
 
         # Convolutional layers
+        # self.conv = nn.Sequential(
+        #     nn.Conv2d(12, 16, kernel_size=3, padding=1),
+        #     nn.MaxPool2d(2),  # Increase pooling size
+        #     nn.ReLU(),
+        #     nn.Conv2d(16, 32, kernel_size=3, padding=1),
+        #     nn.MaxPool2d(2),  # Increase pooling size
+        #     nn.ReLU(),
+        #     nn.Conv2d(32, 64, kernel_size=3, padding=1),
+        #     nn.MaxPool2d(2),
+        #     nn.ReLU(),
+        # )
         self.conv = nn.Sequential(
             nn.Conv2d(12, 16, kernel_size=3, padding=1),
-            nn.MaxPool2d(2),  # Increase pooling size
+            nn.MaxPool2d(2),
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.MaxPool2d(2),  # Increase pooling size
+            nn.MaxPool2d(2),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.MaxPool2d(2),
             nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),  # Added complexity
+            nn.ReLU(),
         )
 
+        # self.lin = nn.Sequential(
+        #     nn.Flatten(),
+        #     nn.Linear(lin_size, 128),  # Adjust input size
+        #     nn.ReLU(),
+        #     nn.Linear(128, 128)  # First 8 outputs are positions in each frame
+        # )
         self.lin = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(lin_size, 128),  # Adjust input size
+            nn.Linear(lin_size, 256),  # Increased width
             nn.ReLU(),
-            nn.Linear(128, 128)  # First 8 outputs are positions in each frame
+            nn.Linear(256, 128),      # Adjusted width
+            nn.ReLU(),
+            nn.Linear(128, 128)       # Adjusted width
         )
 
 
     def forward(self, x):
-        # print(f"Shape before forward: {x.shape}")
-        # x = self.pool2(torch.relu(self.conv1(x)))
-        # x = self.pool2(torch.relu(self.conv2(x)))
-        # x = torch.relu(self.conv3(x))
-        #
-        # print(f"Shape after pooling: {x.shape}")
-        # 
-        # # x = nn.Flatten(x)
-        # # print(f"Shape after flatten: {x.shape}")
-        # 
-        # x = torch.relu(self.fc1(nn.Flatten(x)))
-        # x = self.fc2(x)
         x = self.conv(x)
         # print(f"after conv: {x.shape}")
         x = self.lin(x)
@@ -130,11 +139,14 @@ def train_model(model, num_epochs, batch_size, lr):
 
     # Define loss function and optimizer
     # criterion = nn.HuberLoss()
-    weights = 1e-5 * torch.ones(128)
+    weights = 1e-3 * torch.ones(128)
     weights[:8] = 1
+    weights = weights / weights.sum()
+    weights = weights.to(device)
     # criterion = CustomMSELoss(weights)
     # criterion = nn.MSELoss()
-    criterion = nn.L1Loss()
+    # criterion = nn.L1Loss()
+    criterion = nn.HuberLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Training loop
@@ -154,7 +166,7 @@ def train_model(model, num_epochs, batch_size, lr):
             # print(f"size of outputs: {outputs.shape}")
             # print(f"size of labels: {labels.shape}")
             # Compute loss
-            loss = criterion(outputs, labels)
+            loss = criterion(weights*outputs, weights*labels)
             
             # Backpropagation and optimization
             loss.backward()
@@ -175,7 +187,7 @@ def train_model(model, num_epochs, batch_size, lr):
             for inputs, labels in val_dataloader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
-                loss = criterion(outputs, labels)
+                loss = criterion(weights*outputs, weights*labels)
                 val_loss += loss.item()
 
         # Print validation loss and accuracy for this epoch

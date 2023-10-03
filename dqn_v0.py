@@ -56,11 +56,14 @@ def main():
             next_state, reward = env.step(action)
             next_state = next_state.to(get_device())
             reward = reward.to(get_device())
+            if reward.item():
+                print(f"      Score updated to {env.score}")
             
             # Update the Q-network using the Q-learning formula
             target = reward + 0.99 * torch.max(dqn(next_state.unsqueeze(0)))
             current = dqn(state.unsqueeze(0))[0][action]
             loss = criterion(current, target)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

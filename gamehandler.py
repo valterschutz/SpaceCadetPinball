@@ -19,7 +19,7 @@ class GameEnvironment:
         self.frame_id = 0
 
         self.internal_state = torch.zeros((3, self.save_width, self.save_height, 4))
-        self.prev_score = 0
+        self.prev_score = np.array([0], dtype=np.int32)
         self.external_state = None
         
         ### INIT SHM
@@ -31,7 +31,7 @@ class GameEnvironment:
         self.sem = self.init_shared_memory("sem", self.init_sem, np.int32)
         init_action = np.array([33], dtype=np.uint8)
         self.action = self.init_shared_memory("action", init_action, np.uint8)
-        init_score = np.array([-99], dtype=np.int32)
+        init_score = np.array([0], dtype=np.int32)
         self.score = self.init_shared_memory("score", init_score, np.int32)
         init_pixels = np.zeros([height*width*4], dtype=np.uint8)
         self.pixels = self.init_shared_memory("pixels", init_pixels, np.uint8)
@@ -47,7 +47,7 @@ class GameEnvironment:
         for shm in self.shm_objs:
             shm.close()
             shm.unlink()
-        time.sleep(1)
+        time.sleep(0.1)
         self.process.terminate()
         print("      Shared memory unlinked")
 
@@ -91,8 +91,8 @@ class GameEnvironment:
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
-        reward = torch.tensor(self.score - self.prev_score, dtype=torch.int32)
-        self.prev_score = self.score
+        reward = torch.tensor(self.score[0] - self.prev_score[0], dtype=torch.int32)
+        self.prev_score[:] = self.score[:]
         reward.to(get_device())
         return reward
 

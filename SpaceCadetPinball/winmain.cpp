@@ -336,8 +336,8 @@ void winmain::MainLoop()
 			if (!single_step && !no_time_loss)
 			{
 				auto dt = static_cast<float>(frameDuration.count());
-				// auto dt = 0.001;
-				// printf("dt = %f\n", dt);
+				//auto dt = 0.0000001;
+				//printf("dt = %f\n", dt);
 				pb::frame(dt);
 				if (DispGRhistory)
 				{
@@ -1052,7 +1052,7 @@ int winmain::ProcessWindowMessages()
 	{
 		idleWait = static_cast<int>(TargetFrameTime.count());
 		// COMMENT/UNCOMMENT
-		while (SDL_PollEvent(&event))
+		//while (SDL_PollEvent(&event))
 		{
 			if (!event_handler(&event))
 				return 0;

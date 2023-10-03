@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import time
 from train_cnn import load_latest_model, get_device
 from gamehandler import GameEnvironment
 
@@ -29,7 +30,7 @@ class DQN(nn.Module):
 
 NUM_ACTIONS = 7
 GAMMA = 0.995
-EPSILON = 0.3
+EPSILON = 0.1
 
 def main():
     dqn = DQN(NUM_ACTIONS)

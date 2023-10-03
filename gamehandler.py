@@ -24,6 +24,9 @@ class GameEnvironment:
         
         ### INIT SHM
         self.shm_objs = []
+        # ball info is not used but needs to be opened atm since we modified the C++ code.
+        init_ball_info = np.array([-1, -1, -1, -1, -1, -1, -1], dtype=np.float32)
+        ball_info = self.init_shared_memory("ball_info", init_ball_info, np.float32)
         self.init_sem = np.array([0], dtype=np.int32)
         self.sem = self.init_shared_memory("sem", self.init_sem, np.int32)
         init_action = np.array([33], dtype=np.uint8)
@@ -35,7 +38,7 @@ class GameEnvironment:
 
         # START GAME AND FAST FORWARD 
         self.process = self.start_game()
-        self.fast_forward_frames(500)
+        #self.fast_forward_frames(500)
         self.get_external_state()
         self.external_state.to(get_device())
 
@@ -68,7 +71,7 @@ class GameEnvironment:
         
     def is_done(self):
         #if self.sem[0] == -9:
-        if self.frame_id > 1500:
+        if self.frame_id > 15000:
             return True
         return False
 
@@ -83,8 +86,7 @@ class GameEnvironment:
         self.sem[:] = self.init_sem[:] # Tell C to proceed
         self.frame_id += 1
 
-    @classmethod
-    def int_to_c_action(cls, int_action):
+    def int_to_c_action(self, int_action):
         action =  ["R", "r", "L", "l", "!", ".", "p"][int_action]
         return np.array([ord(action)], dtype=np.uint8)
 
@@ -110,7 +112,7 @@ class GameEnvironment:
         if self.frame_id % 100 == 0:
             print(f"      Frame {self.frame_id}")
         # Simulate the game step and return the next internal_state and reward
-        self.action[:] = self.int_to_c_action(action)
+        self.action[:] = self.int_to_c_action(action)[:]
         self.update_internal_state()
         return self.get_external_state(), self.get_reward()
 

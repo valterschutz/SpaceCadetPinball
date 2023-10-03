@@ -1462,7 +1462,6 @@ void ImGuiIO::AddMouseButtonEvent(int mouse_button, bool down)
 		down = 1;
     if (latest_button_down == down)
         return;
-	printf("mouse_button = %d, down = %d\n", mouse_button, down);
 
     ImGuiInputEvent e;
     e.Type = ImGuiInputEventType_MouseButton;

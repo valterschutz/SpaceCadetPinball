@@ -111,17 +111,17 @@ def main():
         action[:] = chartoarray('a')
     actions = ['L','l','R','r','!','.','p']
     ai = 0
-    img_tensor = torch.zeros(HEIGHT//2,WIDTH//2,3,4, dtype=torch.uint8)
-    pos_tensor = torch.zeros(2,4,dtype=torch.float32)
+    img_tensor = torch.zeros(4,3,HEIGHT//2,WIDTH//2, dtype=torch.uint8)
+    pos_tensor = torch.zeros(4,2,dtype=torch.float32)
     def add_data_to_tensors(i):
         # Update image tensor
         pixels_reshaped = pixels.reshape(HEIGHT, WIDTH, 4)[:,:,:3]
-        thing = skimage.measure.block_reduce(pixels_reshaped, (2,2,1), np.mean)
-        img_tensor[:,:,:,i] = torch.from_numpy(thing)
+        thing1 = skimage.measure.block_reduce(pixels_reshaped, (2,2,1), np.mean)
+        thing2 = torch.from_numpy(thing1).permute(2,0,1)
+        img_tensor[i,:,:,:] = thing2
 
         # Update position tensor
-        pos_tensor[:,i] = torch.from_numpy(ball_info[:2])
-
+        pos_tensor[i,:] = torch.from_numpy(ball_info[:2])
     def i_frame_fun():
         nonlocal ai
         action[:] = chartoarray(actions[ai])

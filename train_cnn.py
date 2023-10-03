@@ -1,3 +1,5 @@
+import glob
+import datetime
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Subset
@@ -5,38 +7,62 @@ import os
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
 import torch.optim as optim
+import matplotlib.pyplot as plt
+import sys
+
+# Dimensions of pinball board
+WIDTH = 600;
+HEIGHT = 416;
+
+SAVED_WIDTH = WIDTH // 2
+SAVED_HEIGHT = HEIGHT // 2
+
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 class BallDetectionCNN(nn.Module):
     def __init__(self):
         super(BallDetectionCNN, self).__init__()
         
+        lin_size = int(SAVED_WIDTH/(2**3)) * int(SAVED_HEIGHT/(2**3)) * 64
+
         # Convolutional layers
-        self.conv1 = nn.Conv2d(12, 16, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        
-        # Max-pooling layers
-        self.pool4 = nn.MaxPool2d(4, 4)  # Increase pooling size
-        self.pool2 = nn.MaxPool2d(2, 2)  # Increase pooling size
-        
-        # Fully connected layers
-        width = 600/2;
-        height = 416/2;
+        self.conv = nn.Sequential(
+            nn.Conv2d(12, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(2),  # Increase pooling size
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.MaxPool2d(2),  # Increase pooling size
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.MaxPool2d(2),
+            nn.ReLU(),
+        )
 
-        lin_size = int(width/2**3 * height/2**3 * 64)
+        self.lin = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(lin_size, 128),  # Adjust input size
+            nn.ReLU(),
+            nn.Linear(128, 128)  # First 8 outputs are positions in each frame
+        )
 
-        self.fc1 = nn.Linear(lin_size, 128)  # Adjust input size
-        self.fc2 = nn.Linear(128, 8)  # 2 output classes (ball or not)
 
     def forward(self, x):
-        x = self.pool2(torch.relu(self.conv1(x)))
-        x = self.pool2(torch.relu(self.conv2(x)))
-        x = self.pool2(torch.relu(self.conv3(x)))
-        
-        x = x.flatten()  # Flatten the feature maps
-        
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
+        # print(f"Shape before forward: {x.shape}")
+        # x = self.pool2(torch.relu(self.conv1(x)))
+        # x = self.pool2(torch.relu(self.conv2(x)))
+        # x = torch.relu(self.conv3(x))
+        #
+        # print(f"Shape after pooling: {x.shape}")
+        # 
+        # # x = nn.Flatten(x)
+        # # print(f"Shape after flatten: {x.shape}")
+        # 
+        # x = torch.relu(self.fc1(nn.Flatten(x)))
+        # x = self.fc2(x)
+        x = self.conv(x)
+        # print(f"after conv: {x.shape}")
+        x = self.lin(x)
+        # print(f"after lin: {x.shape}")
         return x
 
 class CustomDataset(Dataset):
@@ -53,7 +79,8 @@ class CustomDataset(Dataset):
         lbl_filename = os.path.join(self.lbl_data_folder, self.data_files[idx])
         img_filename = os.path.join(self.img_data_folder, self.data_files[idx])
 
-        lbl_data = torch.load(lbl_filename).reshape(1,8).squeeze()
+        lbl_data = torch.zeros(128)
+        lbl_data[:8] = torch.load(lbl_filename).reshape(8)
         img_data = torch.load(img_filename)
 
         if self.transform:
@@ -67,73 +94,180 @@ class Uint8ToFloatTransform(object):
 
 class Reshape3DTransform(object):
     def __call__(self, sample):
-        return sample.reshape(sample.shape[0], sample.shape[1], -1).permute(2, 0, 1)
+        return sample.view(
+            sample.shape[0]*sample.shape[1],
+            sample.shape[2],
+            sample.shape[3]
+        )
 
-# Define a batch size
-batch_size = 32
+class CustomMSELoss(nn.Module):
+    def __init__(self, weights):
+        super(CustomMSELoss, self).__init__()
+        self.weights = weights.to(device)
 
-# Create a transform if needed (e.g., for image preprocessing)
-transform = transforms.Compose([Reshape3DTransform(), Uint8ToFloatTransform()])  # Adjust as needed
+    def forward(self, output, target):
+        thing0 =  (output - target)**2
+        thing1 = self.weights * thing0
+        loss = torch.sum(thing1)
+        return loss
 
-# Create instances of the custom dataset
-custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data', transform=transform)
+def train_model(model, num_epochs, batch_size, lr):
+    # Create a transform if needed (e.g., for image preprocessing)
+    transform = transforms.Compose([Reshape3DTransform(), Uint8ToFloatTransform()])  # Adjust as needed
 
-# Split the dataset into train and validation subsets
-train_indices, val_indices = train_test_split(list(range(len(custom_dataset))), test_size=0.2, random_state=42)
+    # Create instances of the custom dataset
+    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data', transform=transform)
 
-# Create DataLoader for training and validation subsets
-train_dataset = Subset(custom_dataset, train_indices)
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Split the dataset into train and validation subsets
+    train_indices, val_indices = train_test_split(list(range(len(custom_dataset))), test_size=0.2, random_state=42)
 
-val_dataset = Subset(custom_dataset, val_indices)
-val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
+    # Create DataLoader for training and validation subsets
+    train_dataset = Subset(custom_dataset, train_indices)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-# Create an instance of the model
-model = BallDetectionCNN()
+    val_dataset = Subset(custom_dataset, val_indices)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size)
 
-# Define loss function and optimizer
-criterion = nn.HuberLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # Define loss function and optimizer
+    # criterion = nn.HuberLoss()
+    weights = 1e-5 * torch.ones(128)
+    weights[:8] = 1
+    # criterion = CustomMSELoss(weights)
+    # criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-# Number of training epochs
-num_epochs = 10
-
-# Training loop
-for epoch in range(num_epochs):
-    model.train()  # Set the model in training mode
-    
-    running_loss = 0.0
-    for inputs, labels in train_dataloader:
-        optimizer.zero_grad()  # Zero the gradient buffers
+    # Training loop
+    print("Training started!")
+    for epoch in range(num_epochs):
+        model.train()  # Set the model in training mode
         
-        # Forward pass
-        outputs = model(inputs)
-        
-        # Compute loss
-        loss = criterion(outputs, labels)
-        
-        # Backpropagation and optimization
-        loss.backward()
-        optimizer.step()
-        
-        running_loss += loss.item()
-    
-    # Print training loss for this epoch
-    print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_dataloader)}")
+        running_loss = 0.0
+        for inputs, labels in train_dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
 
-    # Validation
-    model.eval()  # Set the model in evaluation mode
-    val_loss = 0.0
-    correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for inputs, labels in val_dataloader:
+            optimizer.zero_grad()  # Zero the gradient buffers
+            
+            # Forward pass
             outputs = model(inputs)
+            
+            # print(f"size of outputs: {outputs.shape}")
+            # print(f"size of labels: {labels.shape}")
+            # Compute loss
             loss = criterion(outputs, labels)
-            val_loss += loss.item()
+            
+            # Backpropagation and optimization
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item()
+        
+        # Print training loss for this epoch
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_dataloader)}")
 
-    # Print validation loss and accuracy for this epoch
-    print(f"Validation Loss: {val_loss / len(val_dataloader)}")
+        # Validation
+        model.eval()  # Set the model in evaluation mode
+        val_loss = 0.0
+        correct = 0
+        total = 0
 
-print("Training finished!")
+        with torch.no_grad():
+            for inputs, labels in val_dataloader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+
+        # Print validation loss and accuracy for this epoch
+        print(f"Validation Loss: {val_loss / len(val_dataloader)}")
+
+    print("Training finished!")
+    return model
+
+def load_latest_model():
+    # Define the directory where your model files are stored
+    model_directory = 'models'  # Replace with the actual directory path
+
+    # List all model files in the directory
+    model_files = glob.glob(os.path.join(model_directory, 'model_*.pth'))
+
+    # Ensure that there are model files to load
+    if not model_files:
+        return None
+
+    # Sort the model files by timestamp (modification time) in descending order
+    model_files.sort(key=os.path.getmtime, reverse=True)
+
+    # Select the most recent model file
+    latest_model_path = model_files[0]
+
+    print(f"Loading {latest_model_path}...")
+
+    model = BallDetectionCNN()
+    model.load_state_dict(torch.load(latest_model_path))
+    
+    # Load to GPU
+    # Move the model to the GPU (or CPU if GPU is not available)
+    model.to(device)
+    return model
+
+def save_model(model):
+    # Get the current date and time as a string
+    current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+    # Define a file path with the timestamp
+    model_path = f'models/model_{current_datetime}.pth'
+    print(f"Saving {model_path}...")
+    torch.save(model.state_dict(), model_path)
+
+def plot_predictions(model):
+    transform = transforms.Compose([Reshape3DTransform(), Uint8ToFloatTransform()])  # Adjust as needed
+
+    # Create instances of the custom dataset
+    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data', transform=transform)
+
+    dataloader = DataLoader(custom_dataset, batch_size=1, shuffle=True)
+
+    model.eval()
+    with torch.no_grad():
+        for inputs, labels in dataloader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+
+            labels = labels[0,:2].cpu()
+            # inputs = inputs[0,:3,:,:]
+            outputs = outputs[0,:2].cpu()
+
+            plt.plot([-labels[0], -outputs[0]], [-labels[1], -outputs[1]], alpha=0.5)
+    plt.show()
+
+            # loss = criterion(outputs, labels)
+            # val_loss += loss.item()
+
+
+
+
+def train(num_epochs, batch_size, lr):
+    # Load latest model
+    model = load_latest_model()
+    if model == None:
+        print("Creating new model...")
+        model = BallDetectionCNN()
+        model.to(device)
+
+    # Train it
+    trained_model = train_model(model, num_epochs, batch_size, lr)
+
+    # Save it
+    save_model(trained_model)
+
+
+
+if sys.argv[1] == 'train':
+    num_epochs = int(sys.argv[2])
+    batch_size = int(sys.argv[3])
+    lr = float(sys.argv[4])
+    train(num_epochs, batch_size, lr)
+elif sys.argv[1] == 'plot':
+    plot_predictions(load_latest_model())
+else:
+    error('hej')

@@ -17,53 +17,64 @@ HEIGHT = 416;
 SAVED_WIDTH = WIDTH // 2
 SAVED_HEIGHT = HEIGHT // 2
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+device = get_device()
 
 class BallDetectionCNN(nn.Module):
     def __init__(self):
         super(BallDetectionCNN, self).__init__()
         
-        lin_size = int(SAVED_WIDTH/(2**3)) * int(SAVED_HEIGHT/(2**3)) * 128
+        lin_size = int(SAVED_WIDTH/(2**6)) * int(SAVED_HEIGHT/(2**6)) * 16
 
-        # Convolutional layers
-        # self.conv = nn.Sequential(
-        #     nn.Conv2d(12, 16, kernel_size=3, padding=1),
-        #     nn.MaxPool2d(2),  # Increase pooling size
-        #     nn.ReLU(),
-        #     nn.Conv2d(16, 32, kernel_size=3, padding=1),
-        #     nn.MaxPool2d(2),  # Increase pooling size
-        #     nn.ReLU(),
-        #     nn.Conv2d(32, 64, kernel_size=3, padding=1),
-        #     nn.MaxPool2d(2),
-        #     nn.ReLU(),
-        # )
         self.conv = nn.Sequential(
             nn.Conv2d(12, 16, kernel_size=3, padding=1),
             nn.MaxPool2d(2),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
             nn.MaxPool2d(2),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
             nn.MaxPool2d(2),
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),  # Added complexity
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.BatchNorm2d(16),
+
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
             nn.ReLU(),
         )
-
-        # self.lin = nn.Sequential(
-        #     nn.Flatten(),
-        #     nn.Linear(lin_size, 128),  # Adjust input size
-        #     nn.ReLU(),
-        #     nn.Linear(128, 128)  # First 8 outputs are positions in each frame
-        # )
         self.lin = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(lin_size, 256),  # Increased width
+
+            nn.Linear(lin_size, 128),
             nn.ReLU(),
-            nn.Linear(256, 128),      # Adjusted width
+
+            nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(128, 128)       # Adjusted width
+
+            nn.Linear(128, 128),
+            nn.ReLU(),
+
+            nn.Linear(128, 128),
         )
 
 
@@ -120,7 +131,13 @@ class CustomMSELoss(nn.Module):
         loss = torch.sum(thing1)
         return loss
 
+def print_model_summary(model):
+    print(model)
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters in the model: {total_params}")
+
 def train_model(model, num_epochs, batch_size, lr):
+    print_model_summary(model)
     # Create a transform if needed (e.g., for image preprocessing)
     transform = transforms.Compose([Reshape3DTransform(), Uint8ToFloatTransform()])  # Adjust as needed
 
@@ -139,7 +156,7 @@ def train_model(model, num_epochs, batch_size, lr):
 
     # Define loss function and optimizer
     # criterion = nn.HuberLoss()
-    weights = 1e-3 * torch.ones(128)
+    weights = 1e-5 * torch.ones(128)
     weights[:8] = 1
     weights = weights / weights.sum()
     weights = weights.to(device)
@@ -175,7 +192,7 @@ def train_model(model, num_epochs, batch_size, lr):
             running_loss += loss.item()
         
         # Print training loss for this epoch
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_dataloader)}")
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_dataloader):.5f}")
 
         # Validation
         model.eval()  # Set the model in evaluation mode
@@ -191,7 +208,7 @@ def train_model(model, num_epochs, batch_size, lr):
                 val_loss += loss.item()
 
         # Print validation loss and accuracy for this epoch
-        print(f"Validation Loss: {val_loss / len(val_dataloader)}")
+        print(f"Validation Loss: {val_loss / len(val_dataloader):.5f}")
 
     print("Training finished!")
     return model
@@ -216,10 +233,9 @@ def load_latest_model():
     print(f"Loading {latest_model_path}...")
 
     model = BallDetectionCNN()
-    model.load_state_dict(torch.load(latest_model_path))
+    model.load_state_dict(torch.load(latest_model_path, map_location=device))
     
     # Load to GPU
-    # Move the model to the GPU (or CPU if GPU is not available)
     model.to(device)
     return model
 
@@ -250,6 +266,8 @@ def plot_predictions(model):
             outputs = outputs[0,:2].cpu()
 
             plt.plot([-labels[0], -outputs[0]], [-labels[1], -outputs[1]], alpha=0.5)
+
+    plt.savefig("figs/latest_fig.png")
     plt.show()
 
             # loss = criterion(outputs, labels)
@@ -273,13 +291,16 @@ def train(num_epochs, batch_size, lr):
     save_model(trained_model)
 
 
+def main():
+    if sys.argv[1] == 'train':
+        num_epochs = int(sys.argv[2])
+        batch_size = int(sys.argv[3])
+        lr = float(sys.argv[4])
+        train(num_epochs, batch_size, lr)
+    elif sys.argv[1] == 'plot':
+        plot_predictions(load_latest_model())
+    else:
+        error('hej')
 
-if sys.argv[1] == 'train':
-    num_epochs = int(sys.argv[2])
-    batch_size = int(sys.argv[3])
-    lr = float(sys.argv[4])
-    train(num_epochs, batch_size, lr)
-elif sys.argv[1] == 'plot':
-    plot_predictions(load_latest_model())
-else:
-    error('hej')
+if __name__ == "__main__":
+    main()

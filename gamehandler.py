@@ -89,10 +89,14 @@ class GameEnvironment:
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
+        self.extra_reward = -100 if action in "RL" else 0
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
-        reward = torch.tensor(self.score[0] - self.prev_score[0], dtype=torch.int32)
+        reward = self.score[0] - self.prev_score[0]
+        if reward < 0:
+            reward = 0
+        reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
         self.prev_score[:] = self.score[:]
         reward.to(get_device())
         return reward

@@ -337,7 +337,7 @@ void winmain::MainLoop()
 			{
 				auto dt = static_cast<float>(frameDuration.count());
 				//auto dt = 0.0000001;
-				//printf("dt = %f\n", dt);
+				printf("dt = %f\n", dt);
 				pb::frame(dt);
 				if (DispGRhistory)
 				{
@@ -533,7 +533,9 @@ void winmain::RenderUi()
 					new_game();
 				}
 				ImGui::EndMenu();
+			new_game();
 			}
+
 			ImGuiMenuItemWShortcut(GameBindings::ShowControlDialog);
 			if (ImGui::BeginMenu("Language"))
 			{
@@ -786,6 +788,9 @@ void winmain::RenderUi()
 
 	a_dialog();
 	high_score::RenderHighScoreDialog();
+	// pb::uninit();
+	// pb::init();
+	// printf("after pb::init\n");
 	font_selection::RenderDialog();
 	if (ShowSpriteViewer)
 		render::SpriteViewer(&ShowSpriteViewer);

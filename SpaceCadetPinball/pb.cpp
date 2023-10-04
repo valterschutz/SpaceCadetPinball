@@ -681,6 +681,8 @@ void pb::launch_ball()
 
 void pb::end_game()
 {
+	pb::replay_level(0);
+	/*
 	int scores[4]{};
 	int scoreIndex[4]{};
 
@@ -740,6 +742,7 @@ void pb::end_game()
 			}
 		}
 	}
+	*/
 }
 
 void pb::high_scores()

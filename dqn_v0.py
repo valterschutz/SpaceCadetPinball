@@ -27,10 +27,10 @@ class DQN(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-NUM_ACTIONS = 7 # 11 with table bump
+NUM_ACTIONS = 7 # 11 with table bump, 7 without
 GAMMA = 0.995
-EPSILON = 0.2
-REPLAY_BUFFER_SIZE = 10000  # Size of the replay buffer
+EPSILON = 0.1
+REPLAY_BUFFER_SIZE = 1000  # Size of the replay buffer
 BATCH_SIZE = 32  # Batch size for training
 
 class ReplayBuffer:
@@ -79,7 +79,7 @@ def main():
                 #print("Q values: [R r L l ! . p]", q_values.detach().cpu().numpy())
 
             # Store the transition in the replay buffer
-            if env.frame_id > 300: # We don't need to save the first 300 frames. The ball hasn't dropped yet.
+            if env.frame_id > 500: # We don't need to save the first 300 frames. The ball hasn't dropped yet.
                 replay_buffer.push((state, action, next_state, reward))
 
             # Sample a batch of experiences from the replay buffer
@@ -93,6 +93,8 @@ def main():
                 next_states = torch.stack(next_states)
                 rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(get_device())
 
+                optimizer.zero_grad()
+
                 # Compute the Q-values and target values
                 q_values = dqn(states)
                 next_q_values = dqn(next_states)
@@ -100,12 +102,12 @@ def main():
                 targets = rewards + GAMMA * max_next_q_values
 
                 # Get the Q-values for the selected actions
+                # what the f*** does this do?
                 q_values = q_values.gather(1, actions)
 
                 # Compute the loss and update the Q-network
                 loss = criterion(q_values, targets)
                 #print(f"Loss: {loss.item():.3f}")
-                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 

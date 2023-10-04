@@ -18,7 +18,7 @@ SAVED_WIDTH = WIDTH // 2
 SAVED_HEIGHT = HEIGHT // 2
 
 def get_device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 device = get_device()
 

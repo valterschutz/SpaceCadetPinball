@@ -131,7 +131,7 @@ optionsStruct options::Options
 	{"Frames Per Second", DefFps},
 	{"Updates Per Second", DefUps},
 	{"ShowMenu", true},
-	{"Uncapped Updates Per Second", true},
+	{"Uncapped Updates Per Second", false},
 	{"Sound Channels", DefSoundChannels},
 	{"HybridSleep", false},
 	{"Prefer 3DPB Game Data", false},

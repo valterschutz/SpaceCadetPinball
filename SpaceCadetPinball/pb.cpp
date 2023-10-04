@@ -178,7 +178,7 @@ void pb::SelectDatFile(const std::vector<const char*>& dataSearchPaths)
 						FullTiltMode = true;
 					if (datFileName == "DEMO.DAT")
 						FullTiltDemoMode = FullTiltMode = true;
-					printf("Loading game from: %s\n", datFilePath.c_str());
+					//printf("Loading game from: %s\n", datFilePath.c_str());
 					return;
 				}
 			}
@@ -684,7 +684,6 @@ void pb::launch_ball()
 
 void pb::end_game()
 {
-	printf("end_game() in pb.cpp\n");
 	int sem_fd = shm_open("/sem", O_RDWR, 0666);
 	if (sem_fd==-1) {
 		perror("shm_open");

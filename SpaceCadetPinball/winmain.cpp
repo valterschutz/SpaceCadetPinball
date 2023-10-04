@@ -337,7 +337,7 @@ void winmain::MainLoop()
 			{
 				auto dt = static_cast<float>(frameDuration.count());
 				//auto dt = 0.0000001;
-				printf("dt = %f\n", dt);
+				// printf("dt = %f\n", dt);
 				pb::frame(dt);
 				if (DispGRhistory)
 				{
@@ -402,31 +402,32 @@ void winmain::MainLoop()
 				}
 			}
 
-			auto updateEnd = Clock::now();
-			auto targetTimeDelta = TargetFrameTime - DurationMs(updateEnd - frameStart) - sleepRemainder;
+			// auto updateEnd = Clock::now();
+			// auto targetTimeDelta = TargetFrameTime - DurationMs(updateEnd - frameStart) - sleepRemainder;
 
-			TimePoint frameEnd;
-			if (targetTimeDelta > DurationMs::zero() && !Options.UncappedUpdatesPerSecond)
-			{
-				if (Options.HybridSleep)
-					HybridSleep(targetTimeDelta);
-				else
-					std::this_thread::sleep_for(targetTimeDelta);
-				frameEnd = Clock::now();
-			}
-			else
-			{
-				frameEnd = updateEnd;
-			}
+			// TimePoint frameEnd;
+			// if (targetTimeDelta > DurationMs::zero() && !Options.UncappedUpdatesPerSecond)
+			// {
+			// 	if (Options.HybridSleep) {
+			// 		HybridSleep(targetTimeDelta);
+			// 	}
+			// 	else
+			// 		std::this_thread::sleep_for(targetTimeDelta);
+			// 	frameEnd = Clock::now();
+			// }
+			// else
+			// {
+			// 	frameEnd = updateEnd;
+			// }
 
 			// Limit duration to 2 * target time
-			sleepRemainder = Clamp(DurationMs(frameEnd - updateEnd) - targetTimeDelta, -TargetFrameTime,
-			                       TargetFrameTime);
-			frameDuration = std::min<DurationMs>(DurationMs(frameEnd - frameStart), 2 * TargetFrameTime);
-			frameStart = frameEnd;
+			// sleepRemainder = Clamp(DurationMs(frameEnd - updateEnd) - targetTimeDelta, -TargetFrameTime,
+			//                        TargetFrameTime);
+			// frameDuration = std::min<DurationMs>(DurationMs(frameEnd - frameStart), 2 * TargetFrameTime);
+			// frameStart = frameEnd;
 			UpdateToFrameCounter++;
 
-			CursorIdleCounter = std::max(CursorIdleCounter - static_cast<int>(frameDuration.count()), 0);
+			// CursorIdleCounter = std::max(CursorIdleCounter - static_cast<int>(frameDuration.count()), 0);
 		}
 	}
 
@@ -515,25 +516,20 @@ void winmain::RenderUi()
 				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_1Player), nullptr, Options.Players == 1))
 				{
 					options::toggle(Menu1::OnePlayer);
-					new_game();
 				}
 				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_2Players), nullptr, Options.Players == 2))
 				{
 					options::toggle(Menu1::TwoPlayers);
-					new_game();
 				}
 				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_3Players), nullptr, Options.Players == 3))
 				{
 					options::toggle(Menu1::ThreePlayers);
-					new_game();
 				}
 				if (ImGui::MenuItem(pb::get_rc_string(Msg::Menu1_4Players), nullptr, Options.Players == 4))
 				{
 					options::toggle(Menu1::FourPlayers);
-					new_game();
 				}
 				ImGui::EndMenu();
-			new_game();
 			}
 
 			ImGuiMenuItemWShortcut(GameBindings::ShowControlDialog);

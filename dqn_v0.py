@@ -29,7 +29,7 @@ class DQN(nn.Module):
 
 NUM_ACTIONS = 7 # 11 with table bump, 7 without
 GAMMA = 0.995
-EPSILON = 0.1
+EPSILON = 1
 REPLAY_BUFFER_SIZE = 1000  # Size of the replay buffer
 BATCH_SIZE = 32  # Batch size for training
 
@@ -72,44 +72,44 @@ def main():
             next_state, reward = env.step(action)
             next_state = next_state.to(get_device())
             reward = reward.to(get_device())
-            if reward.item():
-                print(f"      Score updated to {env.score}")
+            # if reward.item():
+            #     print(f"      Score updated to {env.score}")
                 #last_layer_weights = list(dqn.parameters())[-2].data
                 #print("Part of last layer in dqn:", last_layer_weights[:,0].detach().cpu().numpy())
                 #print("Q values: [R r L l ! . p]", q_values.detach().cpu().numpy())
 
             # Store the transition in the replay buffer
-            if env.frame_id > 500: # We don't need to save the first 300 frames. The ball hasn't dropped yet.
-                replay_buffer.push((state, action, next_state, reward))
+            # if env.frame_id > 500: # We don't need to save the first 300 frames. The ball hasn't dropped yet.
+            #     replay_buffer.push((state, action, next_state, reward))
 
             # Sample a batch of experiences from the replay buffer
-            if len(replay_buffer.buffer) >= BATCH_SIZE:
-                batch = replay_buffer.sample(BATCH_SIZE)
-
-                states, actions, next_states, rewards = zip(*batch)
-
-                states = torch.stack(states)
-                actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(get_device())
-                next_states = torch.stack(next_states)
-                rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(get_device())
-
-                optimizer.zero_grad()
-
-                # Compute the Q-values and target values
-                q_values = dqn(states)
-                next_q_values = dqn(next_states)
-                max_next_q_values = torch.max(next_q_values, dim=1, keepdim=True)[0]
-                targets = rewards + GAMMA * max_next_q_values
-
-                # Get the Q-values for the selected actions
-                # what the f*** does this do?
-                q_values = q_values.gather(1, actions)
-
-                # Compute the loss and update the Q-network
-                loss = criterion(q_values, targets)
-                #print(f"Loss: {loss.item():.3f}")
-                loss.backward()
-                optimizer.step()
+            # if len(replay_buffer.buffer) >= BATCH_SIZE:
+            #     batch = replay_buffer.sample(BATCH_SIZE)
+            #
+            #     states, actions, next_states, rewards = zip(*batch)
+            #
+            #     states = torch.stack(states)
+            #     actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(get_device())
+            #     next_states = torch.stack(next_states)
+            #     rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(get_device())
+            #
+            #     optimizer.zero_grad()
+            #
+            #     # Compute the Q-values and target values
+            #     q_values = dqn(states)
+            #     next_q_values = dqn(next_states)
+            #     max_next_q_values = torch.max(next_q_values, dim=1, keepdim=True)[0]
+            #     targets = rewards + GAMMA * max_next_q_values
+            #
+            #     # Get the Q-values for the selected actions
+            #     # what the f*** does this do?
+            #     q_values = q_values.gather(1, actions)
+            #
+            #     # Compute the loss and update the Q-network
+            #     loss = criterion(q_values, targets)
+            #     #print(f"Loss: {loss.item():.3f}")
+            #     loss.backward()
+            #     optimizer.step()
 
             state = next_state
             if env.is_done():

@@ -263,9 +263,10 @@ void getactionfromcontroller(SDL_Event* event) {
     }
     size_t shm_size = sizeof(char);
     void* action_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, action_fd, 0);
+    close(action_fd);
     if (action_ptr == MAP_FAILED)
     {
-        perror("mmap");
+        perror("getactionfromcontroller action_ptr mmap");
         exit(1);
     }
     char* action_from_controller = (char*) action_ptr;
@@ -344,8 +345,7 @@ void getactionfromcontroller(SDL_Event* event) {
                     event->key.timestamp = SDL_GetTicks();
                     break;
     }
-    
-    close(action_fd);
+    munmap(action_ptr, shm_size);
 }
 
 bool ImGui_ImplSDL2_ProcessEvent(SDL_Event* event)

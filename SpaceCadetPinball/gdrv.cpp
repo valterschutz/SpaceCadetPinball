@@ -176,11 +176,11 @@ void gdrv_bitmap8::BlitToTexture()
 	void* sem_ptr = mmap(NULL, sizeof(int), PROT_READ |PROT_WRITE, MAP_SHARED, sem_fd, 0);
 	if (sem_ptr == MAP_FAILED)
 	{
-	    perror("mmap");
+	    perror("BlitToTexture sem_ptr mmap");
 	    exit(1);
 	}
 	int* sem = (int*) sem_ptr;
-	while (*sem) {} //Wait for sem to be set to 0 by python
+	while (*sem == 1 || *sem == -1) {} //Wait for sem to be set to 0 by python
 	// Write pixels to shared memory
 	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
 	if (pixels_fd==-1) {
@@ -191,7 +191,7 @@ void gdrv_bitmap8::BlitToTexture()
 	void* pixels_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, pixels_fd, 0);
 	if (pixels_ptr == MAP_FAILED)
 	{
-	    perror("mmap");
+	    perror("BlitToTexture pixels_ptr mmap");
 	    exit(1);
 	}
 	int* pixels = (int*) pixels_ptr;
@@ -207,6 +207,8 @@ void gdrv_bitmap8::BlitToTexture()
 
 	close(sem_fd);
 	close(pixels_fd);
+	munmap(sem_ptr, sizeof(int));
+	munmap(pixels_ptr, shm_size);
 }
 
 int gdrv::display_palette(ColorRgba* plt)

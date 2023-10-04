@@ -31,6 +31,7 @@
 #include <sys/mman.h>   // for mmap, PROT_*, MAP_*
 #include <sys/stat.h>   // for mode constants
 #include <unistd.h>     // for close
+#include <cerrno>
 
 TPinballTable* pb::MainTable = nullptr;
 DatFile* pb::record_table = nullptr;
@@ -429,9 +430,11 @@ void pb::timed_frame(float timeDelta)
 			}
 			size_t shm_size = 7 * sizeof(float);
 			void* ball_info_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, ball_info_fd, 0);
+			close(ball_info_fd);
 			if (ball_info_ptr == MAP_FAILED)
 			{
-			    perror("mmap");
+				printf("errno: %d\n", errno);
+				perror("timed_frame ball_info mmap\n");
 			    exit(1);
 			}
 			float ball_buf[7] = {ball->Position.X, ball->Position.Y, ball->PrevPosition.X, ball->PrevPosition.Y, ball->Direction.X, ball->Direction.Y, ball->Speed};
@@ -483,7 +486,7 @@ void pb::timed_frame(float timeDelta)
 					distanceSum += distance;
 				}
 			}
-			close(ball_info_fd);
+			munmap(ball_info_ptr, shm_size);
 		}
 
 		for (auto flipIndex = 0u; flipIndex < MainTable->FlipperList.size(); flipIndex++)
@@ -681,7 +684,26 @@ void pb::launch_ball()
 
 void pb::end_game()
 {
-	pb::replay_level(0);
+	printf("end_game() in pb.cpp\n");
+	int sem_fd = shm_open("/sem", O_RDWR, 0666);
+	if (sem_fd==-1) {
+		perror("shm_open");
+		exit(1);
+	}
+	size_t shm_size = 1 * sizeof(int);
+	void* sem_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, sem_fd, 0);
+	if (sem_ptr == MAP_FAILED)
+	{
+		perror("end_game sem_ptr mmap\n");
+		exit(1);
+	}
+	int* sem = (int*) sem_ptr;
+	*sem = -1;
+	munmap(sem_ptr, shm_size);
+	close(sem_fd);
+
+	// pb::replay_level(0);
+	
 	/*
 	int scores[4]{};
 	int scoreIndex[4]{};

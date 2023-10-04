@@ -21,6 +21,8 @@ class GameEnvironment:
         self.internal_state = torch.zeros((3, self.save_width, self.save_height, 4))
         self.prev_score = np.array([0], dtype=np.int32)
         self.external_state = None
+
+        self.k_skip = 4 # How many frames to skip each step
         
         ### INIT SHM
         self.shm_objs = []
@@ -36,14 +38,17 @@ class GameEnvironment:
         init_pixels = np.zeros([height*width*4], dtype=np.uint8)
         self.pixels = self.init_shared_memory("pixels", init_pixels, np.uint8)
 
+        self.prev_action = None
+
         # START GAME AND FAST FORWARD 
         self.process = self.start_game()
-        #self.fast_forward_frames(500)
+        self.fast_forward_frames(500)
         self.get_external_state()
         self.external_state.to(get_device())
 
     def __del__(self):
         self.process.kill()
+        print(f"Score: {self.score}")
         for shm in self.shm_objs:
             shm.close()
             shm.unlink()
@@ -65,13 +70,15 @@ class GameEnvironment:
     def fast_forward_frames(self, n):
         print(f"   Fast forwarding {n} frames...")
         for _ in range(n):
-            self.sem[:] = self.init_sem[:] # Tell C to proceed
+            while self.sem[0] == 0:
+                # print("hello")
+                pass
             self.frame_id += 1
-            time.sleep(0.001)
+            self.sem[:] = self.init_sem[:] # Tell C to proceed
         
     def is_done(self):
-        #if self.sem[0] == -9:
-        if self.frame_id > 15000:
+        # if self.frame_id > 15000:
+        if self.sem[0] == -1:
             return True
         return False
 
@@ -83,13 +90,15 @@ class GameEnvironment:
         self.internal_state[:,:,:,2] = self.internal_state[:,:,:,1] # put the last frame first
         self.internal_state[:,:,:,1] = self.internal_state[:,:,:,0] # put the last frame first
         self.internal_state[:,:,:,0] = torch.from_numpy(reshaped_pixels).permute(2,1,0) #replace the first frame
-        self.sem[:] = self.init_sem[:] # Tell C to proceed
         self.frame_id += 1
 
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
         self.extra_reward = -100 if action in "RL" else 0
+        if action == self.prev_action:
+            action = "p"
+        self.prev_action = action
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
@@ -118,8 +127,14 @@ class GameEnvironment:
             print(f"      Frame {self.frame_id}")
         # Simulate the game step and return the next internal_state and reward
         self.action[:] = self.int_to_c_action(action)[:]
+        for i in range(self.k_skip):
+            while self.sem[0] == 0:
+                pass
+            if self.sem[0] == 1:
+                self.sem[:] = self.init_sem[:]
         self.update_internal_state()
-        return self.get_external_state(), self.get_reward()
+        state, reward = self.get_external_state(), self.get_reward()
+        return state, reward
 
 
 def start_game():

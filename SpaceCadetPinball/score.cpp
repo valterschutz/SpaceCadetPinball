@@ -139,7 +139,7 @@ void score::update(scoreStruct* score)
 		void* score_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, score_fd, 0);
 		if (score_ptr == MAP_FAILED)
 		{
-		    perror("mmap");
+		    perror("update score_ptr mmap");
 		    exit(1);
 		}
 		int* shared_score = (int*) score_ptr;
@@ -168,6 +168,7 @@ void score::update(scoreStruct* score)
 			}
 		}
 		close(score_fd);
+		munmap(score_ptr, shm_size);
 	}
 }
 

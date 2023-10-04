@@ -17,12 +17,13 @@ class GameEnvironment:
         self.save_width = width//2
         self.save_height = height//2
         self.frame_id = 0
+        self.same_reward_counter = 0
+        self.k_skip = 4 # How many frames to skip each step
+        self.prev_action = None
 
         self.internal_state = torch.zeros((3, self.save_width, self.save_height, 4))
         self.prev_score = np.array([0], dtype=np.int32)
         self.external_state = None
-
-        self.k_skip = 4 # How many frames to skip each step
         
         ### INIT SHM
         self.shm_objs = []
@@ -38,7 +39,6 @@ class GameEnvironment:
         init_pixels = np.zeros([height*width*4], dtype=np.uint8)
         self.pixels = self.init_shared_memory("pixels", init_pixels, np.uint8)
 
-        self.prev_action = None
 
         # START GAME AND FAST FORWARD 
         self.process = self.start_game()
@@ -48,13 +48,12 @@ class GameEnvironment:
 
     def __del__(self):
         self.process.kill()
-        print(f"Score: {self.score}")
+        print(f"Score: {self.score[0]}")
         for shm in self.shm_objs:
             shm.close()
             shm.unlink()
-        time.sleep(0.1)
         self.process.terminate()
-        print("      Shared memory unlinked")
+        #print("      Shared memory unlinked")
 
     def init_shared_memory(self, name, data, dtype):
         shm = shared_memory.SharedMemory(name, create=True, size=data.nbytes)
@@ -68,7 +67,7 @@ class GameEnvironment:
         return subprocess.Popen([c_program_path])
 
     def fast_forward_frames(self, n):
-        print(f"   Fast forwarding {n} frames...")
+        #print(f"   Fast forwarding {n} frames...")
         for _ in range(n):
             while self.sem[0] == 0:
                 # print("hello")
@@ -78,7 +77,7 @@ class GameEnvironment:
         
     def is_done(self):
         # if self.frame_id > 15000:
-        if self.sem[0] == -1:
+        if self.sem[0] == -1 or self.same_reward_counter > 500: #bumper bug?
             return True
         return False
 
@@ -103,6 +102,10 @@ class GameEnvironment:
 
     def get_reward(self):
         reward = self.score[0] - self.prev_score[0]
+        if reward == 0:
+            self.same_reward_counter += 1
+        else:
+            self.same_reward_counter = 0
         if reward < 0:
             reward = 0
         reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
@@ -123,8 +126,8 @@ class GameEnvironment:
         return self.external_state
 
     def step(self, action):
-        if self.frame_id % 100 == 0:
-            print(f"      Frame {self.frame_id}")
+        #if self.frame_id % 100 == 0:
+        #    print(f"      Frame {self.frame_id}, Score {self.score[0]}")
         # Simulate the game step and return the next internal_state and reward
         self.action[:] = self.int_to_c_action(action)[:]
         for i in range(self.k_skip):

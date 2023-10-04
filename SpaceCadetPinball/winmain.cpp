@@ -54,13 +54,13 @@ int winmain::CursorIdleCounter = 0;
 int winmain::WinMain(LPCSTR lpCmdLine)
 {
 	std::set_new_handler(memalloc_failure);
-
+	/*
 	printf("Game version: %s\n", Version);
 	printf("Command line: %s\n", lpCmdLine);
 	printf("Compiled with: SDL %d.%d.%d;", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
 	printf(" SDL_mixer %d.%d.%d;", SDL_MIXER_MAJOR_VERSION, SDL_MIXER_MINOR_VERSION, SDL_MIXER_PATCHLEVEL);
 	printf(" ImGui %s %s\n", IMGUI_VERSION, ImGuiRender);
-
+	*/
 	// SDL init
 	SDL_SetMainReady();
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO |
@@ -105,8 +105,8 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		return 1;
 	}
 	SDL_RendererInfo rendererInfo{};
-	if (!SDL_GetRendererInfo(renderer, &rendererInfo))
-		printf("Using SDL renderer: %s\n", rendererInfo.name);
+	//if (!SDL_GetRendererInfo(renderer, &rendererInfo))
+	//	printf("Using SDL renderer: %s\n", rendererInfo.name);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 

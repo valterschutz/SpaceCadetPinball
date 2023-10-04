@@ -273,6 +273,34 @@ void getactionfromcontroller(SDL_Event* event) {
     // Finished reading from shared memory
     // Change SDL_Event according to action
     switch (*action_from_controller) {
+        case 'X':
+            // Simulate X1 mouse button press (bump left)
+            event->type = SDL_MOUSEBUTTONDOWN;
+            event->button.button = SDL_BUTTON_X1;
+            event->button.state = SDL_PRESSED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case 'x':
+            // Simulate X1 mouse button release
+            event->type = SDL_MOUSEBUTTONUP;
+            event->button.button = SDL_BUTTON_X1;
+            event->button.state = SDL_RELEASED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+        case 'Y':
+            // Simulate X2 mouse button press (bump right)
+            event->type = SDL_MOUSEBUTTONDOWN;
+            event->button.button = SDL_BUTTON_X2;
+            event->button.state = SDL_PRESSED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
+	case 'y':
+            // Simulate X2 mouse button release
+            event->type = SDL_MOUSEBUTTONUP;
+            event->button.button = SDL_BUTTON_X2;
+            event->button.state = SDL_RELEASED;
+            event->button.timestamp = SDL_GetTicks();
+            break;
         case 'L':
             // Simulate left mouse button press
             event->type = SDL_MOUSEBUTTONDOWN;

@@ -87,7 +87,8 @@ class GameEnvironment:
         self.frame_id += 1
 
     def int_to_c_action(self, int_action):
-        action =  ["R", "r", "L", "l", "!", ".", "p"][int_action]
+        # right flipper, left flipper, plunger, tilt left, tilt right, no action
+        action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):

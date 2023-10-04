@@ -27,9 +27,9 @@ class DQN(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-NUM_ACTIONS = 7
+NUM_ACTIONS = 7 # 11 with table bump
 GAMMA = 0.995
-EPSILON = 0.1
+EPSILON = 0.2
 REPLAY_BUFFER_SIZE = 10000  # Size of the replay buffer
 BATCH_SIZE = 32  # Batch size for training
 
@@ -50,8 +50,8 @@ def main():
     dqn = DQN(NUM_ACTIONS)
     dqn.to(get_device())
 
-    optimizer = optim.Adam(dqn.parameters(), lr=0.001)
-    criterion = nn.MSELoss()
+    optimizer = optim.Adam(dqn.parameters(), lr=1e-3)
+    criterion = nn.HuberLoss()
 
     replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
@@ -74,9 +74,13 @@ def main():
             reward = reward.to(get_device())
             if reward.item():
                 print(f"      Score updated to {env.score}")
-            
+                #last_layer_weights = list(dqn.parameters())[-2].data
+                #print("Part of last layer in dqn:", last_layer_weights[:,0].detach().cpu().numpy())
+                #print("Q values: [R r L l ! . p]", q_values.detach().cpu().numpy())
+
             # Store the transition in the replay buffer
-            replay_buffer.push((state, action, next_state, reward))
+            if env.frame_id > 300: # We don't need to save the first 300 frames. The ball hasn't dropped yet.
+                replay_buffer.push((state, action, next_state, reward))
 
             # Sample a batch of experiences from the replay buffer
             if len(replay_buffer.buffer) >= BATCH_SIZE:
@@ -100,6 +104,7 @@ def main():
 
                 # Compute the loss and update the Q-network
                 loss = criterion(q_values, targets)
+                #print(f"Loss: {loss.item():.3f}")
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()

@@ -63,7 +63,7 @@ def main():
     replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
     # Training loop
-    num_episodes = 10000  # Number of episodes to train
+    num_episodes = 1000  # Number of episodes to train
     for episode in range(1, num_episodes):
         current_time = datetime.now()
         formatted_time = current_time.strftime("%d %b %H:%M:%S")

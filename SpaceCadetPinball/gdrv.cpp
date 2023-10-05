@@ -8,10 +8,20 @@
 #include "winmain.h"
 #include "TTextBox.h"
 #include "fullscrn.h"
+#include <cstdint>
 #include <fcntl.h>      // for shm_open
 #include <sys/mman.h>   // for mmap, PROT_*, MAP_*
 #include <sys/stat.h>   // for mode constants
 #include <unistd.h>     // for close
+
+void extract_red_pixels(uint8_t* red, ColorRgba* img, size_t h, size_t w) {
+	uint8_t* rgba = (uint8_t*) img;
+    	for (size_t row_idx = 0; row_idx < h; row_idx++) {
+	    	for (size_t col_idx = 0; col_idx < w; col_idx++) {
+			red[row_idx*w + col_idx] = rgba[4*(4*row_idx*w + 2*col_idx)];
+    		}
+	}
+}
 
 ColorRgba gdrv::current_palette[256]{};
 
@@ -145,13 +155,6 @@ void gdrv_bitmap8::CreateTexture(const char* scaleHint, int access)
 	SDL_SetTextureBlendMode(Texture, SDL_BLENDMODE_NONE);
 }
 
-void printBits(unsigned char x) {
-    for (int i = 7; i >= 0; i--) {
-        // Use a bitwise shift and bitwise AND to extract each bit
-        int bit = (x >> i) & 1;
-        printf("%d", bit);
-    }
-}
 
 void gdrv_bitmap8::BlitToTexture()
 {
@@ -180,25 +183,25 @@ void gdrv_bitmap8::BlitToTexture()
 	    exit(1);
 	}
 	int* sem = (int*) sem_ptr;
-	while (*sem == 1 || *sem == -1) {} //Wait for sem to be set to 0 by python
+	while (*sem == 4 || *sem==-1) {} //Wait for sem to be set to 0 by python
 	// Write pixels to shared memory
 	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
 	if (pixels_fd==-1) {
 	    perror("shm_open");
 	    exit(1);
 	}
-	size_t shm_size = Width * Height * sizeof(ColorRgba);
+	size_t shm_size = Width * Height * 4 / 4; // *4 is for number of frames /4 is for downsampling 
 	void* pixels_ptr = mmap(NULL, shm_size, PROT_READ |PROT_WRITE, MAP_SHARED, pixels_fd, 0);
 	if (pixels_ptr == MAP_FAILED)
 	{
 	    perror("BlitToTexture pixels_ptr mmap");
 	    exit(1);
 	}
-	int* pixels = (int*) pixels_ptr;
-	std::memcpy(pixels, BmpBufPtr1, shm_size);
+	uint8_t* pixels = (uint8_t*) pixels_ptr;
+	extract_red_pixels((pixels + *sem*Height/2*Width/2), BmpBufPtr1, Height/2, Width/2);
+
 	// Set semaphore
-	*sem = 1;
-	// printf("Hi from gdrv BlitToTexture\n");
+	*sem += 1;
 	// Finished writing to shared memory
 	
 	std::memcpy(lockedPixels, BmpBufPtr1, shm_size);

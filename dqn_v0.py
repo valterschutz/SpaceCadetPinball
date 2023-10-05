@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 import time
-from train_cnn import load_latest_model, get_device
+from cnn import load_latest_model, get_device
 from gamehandler import GameEnvironment
 
 # Define the DQN model
@@ -72,7 +72,7 @@ def main():
             save_dqn_model(dqn)
         EPSILON = EPSILON_START * (1 - episode/num_episodes) + episode/num_episodes * EPSILON_END 
         env = GameEnvironment(600, 416)
-        state = env.get_external_state().to(get_device())
+        state = env.get_state()
         print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f}")
         while True:
             if random.random() < EPSILON:

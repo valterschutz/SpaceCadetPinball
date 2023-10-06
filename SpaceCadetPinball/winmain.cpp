@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "winmain.h"
+#include <threads.h>
 
 #include "control.h"
 #include "fullscrn.h"
@@ -285,6 +286,12 @@ void winmain::MainLoop()
 
 	while (true)
 	{
+		// COMMENT/UNCOMMENT sleep
+		// struct timespec ts;
+		// ts.tv_sec = 0;
+		// ts.tv_nsec = 10000000;
+		// thrd_sleep(&ts, NULL);
+
 		if (DispFrameRate)
 		{
 			auto curTime = Clock::now();
@@ -1053,7 +1060,7 @@ int winmain::ProcessWindowMessages()
 	{
 		idleWait = static_cast<int>(TargetFrameTime.count());
 		// COMMENT/UNCOMMENT
-		//while (SDL_PollEvent(&event))
+		// while (SDL_PollEvent(&event))
 		{
 			if (!event_handler(&event))
 				return 0;

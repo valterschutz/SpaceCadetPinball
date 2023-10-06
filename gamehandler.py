@@ -69,50 +69,58 @@ class GameEnvironment:
             self.sem[:] = self.init_sem[:] # Tell C to proceed
         
     def is_done(self):
-        if self.sem[0] == -1 or self.same_reward_counter > 500: #bumper bug?
+        if self.sem[0] < 0 or self.same_reward_counter > 500: #bumper bug?
+            # print(f"in is_done sem is {self.sem[0]}")
             return True
         return False
 
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
-        self.extra_reward = -100 if action in "RL" else 0
+        self.extra_reward = 0 if action in "RL!" else 0
         if action == self.prev_action:
             action = "p"
         self.prev_action = action
         return np.array([ord(action)], dtype=np.uint8)
 
-    def get_reward(self):
-        reward = self.score[0] - self.prev_score[0]
-        if reward == 0:
-            self.same_reward_counter += 1
+    def get_reward(self, dirty_reward=None):
+        if dirty_reward == None:
+            reward = self.score[0] - self.prev_score[0]
+            if reward == 0:
+                self.same_reward_counter += 1
+            else:
+                self.same_reward_counter = 0
+                if reward < 0:
+                    reward = 0
+            reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
         else:
-            self.same_reward_counter = 0
-            if reward < 0:
-                reward = 0
-        reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
+            reward = torch.tensor(dirty_reward, dtype=torch.int32)
         self.prev_score[:] = self.score[:]
         reward.to(get_device())
         return reward
 
     def get_state(self):
-        np_state = self.pixels.astype(np.uint8).reshape((4, self.save_height, self.save_width))
-        state = np_state.astype(np.float32)
+        state = self.pixels.astype(np.uint8).reshape((4, self.save_height, self.save_width))
         state = torch.from_numpy(state)
         state = state.to(get_device())
         return state
 
     def step(self, action):
-        if self.frame_id % 100 == 0:
-            print(f"      Frame {self.frame_id}, Score {self.score[0]}")
+        # if self.frame_id % 100 == 0:
+            # print(f"      Frame {self.frame_id}, Score {self.score[0]}")
         self.action[:] = self.int_to_c_action(action)[:]
-        for i in range(self.k_skip):
-            while self.sem[0] != 4:
-                pass
-            if self.sem[0] == 4:
-                self.sem[:] = self.init_sem[:]
-                self.frame_id += 4
-        state, reward = self.get_state(), self.get_reward()
+        # for i in range(self.k_skip):
+        while self.sem[0] != 4:
+            if self.sem[0] < 0:
+                break
+        # sem is either < 0 or 4 here
+        if self.sem[0] == 4:
+            self.sem[:] = self.init_sem[:]
+            dirty_reward = None
+        else:
+            dirty_reward = None
+        state, reward = self.get_state(), self.get_reward(dirty_reward=dirty_reward)
+        self.frame_id += 4
         return state, reward
 
 

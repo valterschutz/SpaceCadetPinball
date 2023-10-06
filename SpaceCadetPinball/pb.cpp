@@ -697,7 +697,7 @@ void pb::end_game()
 		exit(1);
 	}
 	int* sem = (int*) sem_ptr;
-	*sem = -1;
+	*sem = -1000;
 	munmap(sem_ptr, shm_size);
 	close(sem_fd);
 

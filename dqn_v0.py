@@ -34,11 +34,12 @@ def save_dqn_model(dqn):
     torch.save(dqn.state_dict(), model_path)
 
 NUM_ACTIONS = 7 # 11 with table bump, 7 without
-GAMMA = 0.995
+GAMMA = 0.999
 EPSILON_START = 1
 EPSILON_END = 0.1
-REPLAY_BUFFER_SIZE = 1000  # Size of the replay buffer
-BATCH_SIZE = 32  # Batch size for training
+REPLAY_BUFFER_SIZE = 1200  # Size of the replay buffer, 12000 works
+BATCH_SIZE = 8  # Batch size for training
+LR = 1e-2
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -46,6 +47,7 @@ class ReplayBuffer:
         self.buffer = []
 
     def push(self, transition):
+        # print(len(self.buffer))
         if len(self.buffer) >= self.capacity:
             self.buffer.pop(0)
         self.buffer.append(transition)
@@ -57,8 +59,8 @@ def main():
     dqn = DQN(NUM_ACTIONS)
     dqn.to(get_device())
 
-    optimizer = optim.Adam(dqn.parameters(), lr=1e-3)
-    criterion = nn.HuberLoss()
+    optimizer = optim.Adam(dqn.parameters(), LR)
+    criterion = nn.MSELoss()
 
     replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
@@ -73,7 +75,13 @@ def main():
         EPSILON = EPSILON_START * (1 - episode/num_episodes) + episode/num_episodes * EPSILON_END 
         env = GameEnvironment(600, 416)
         state = env.get_state()
-        print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f}")
+        # print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f}")
+
+        # Calculate and print the expected Q-value
+        q_values = dqn(state.unsqueeze(0))
+        # expected_q_value = torch.max(q_values).item()
+        print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f} Q-values: {q_values}")
+
         while True:
             if random.random() < EPSILON:
                 action = random.randint(0, NUM_ACTIONS - 1)  # Explore
@@ -90,7 +98,7 @@ def main():
             replay_buffer.push((state, action, next_state, reward))
 
             # Sample a batch of experiences from the replay buffer
-            if len(replay_buffer.buffer) >= BATCH_SIZE*10:
+            if len(replay_buffer.buffer) == REPLAY_BUFFER_SIZE:
                 #print(len(replay_buffer.buffer))
                 batch = replay_buffer.sample(BATCH_SIZE)
         

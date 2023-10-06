@@ -204,7 +204,7 @@ void gdrv_bitmap8::BlitToTexture()
 	*sem += 1;
 	// Finished writing to shared memory
 	
-	std::memcpy(lockedPixels, BmpBufPtr1, shm_size);
+	std::memcpy(lockedPixels, BmpBufPtr1, shm_size*4);
 
 	SDL_UnlockTexture(Texture);
 

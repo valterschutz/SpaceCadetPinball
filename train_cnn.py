@@ -100,7 +100,7 @@ class CustomDataset(Dataset):
         img_filename = os.path.join(self.img_data_folder, self.data_files[idx])
 
         lbl_data = torch.zeros(128)
-        lbl_data[:8] = torch.load(lbl_filename).reshape(8)
+        lbl_data[:8] = torch.load(lbl_filename).reshape(4)
         img_data = torch.load(img_filename)
 
         if self.transform:
@@ -183,7 +183,8 @@ def train_model(model, num_epochs, batch_size, lr):
             # print(f"size of outputs: {outputs.shape}")
             # print(f"size of labels: {labels.shape}")
             # Compute loss
-            loss = criterion(weights*outputs, weights*labels)
+            # loss = criterion(weights*outputs, weights*labels)
+            loss = criterion(outputs, labels)
             
             # Backpropagation and optimization
             loss.backward()

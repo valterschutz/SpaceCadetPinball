@@ -39,12 +39,12 @@ def save_dqn_model(dqn):
     torch.save(dqn.state_dict(), model_path)
 
 NUM_ACTIONS = 7 # 11 with table bump, 7 without
-GAMMA = 0.995
-EPSILON_START = 0.8
+GAMMA = 0.99
+EPSILON_START = 1
 EPSILON_END = 0.1
 REPLAY_BUFFER_SIZE = 10000  # Size of the replay buffer, 12000 works
-BATCH_SIZE = 8  # Batch size for training
-LR = 1e-3
+BATCH_SIZE = 32  # Batch size for training
+LR = 1e-4
 NUM_EPISODES = 500
 
 class PrioritizedReplayBuffer:

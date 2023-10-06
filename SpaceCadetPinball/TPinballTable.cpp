@@ -74,7 +74,8 @@ TPinballTable::TPinballTable(): TPinballComponent(nullptr, -1, false)
 	}
 
 	CurrentPlayer = 0;
-	MaxBallCount = 10;
+	MaxBallCount = 3;
+	MaxBallCount = 1; // COMMENT/UNCOMMENT
 	ScoreBallcount = score::create("ballcount1", render::background_bitmap);
 	ScorePlayerNumber1 = score::create("player_number1", render::background_bitmap);
 	int groupIndexObjects = loader::query_handle("table_objects");

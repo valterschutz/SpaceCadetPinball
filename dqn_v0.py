@@ -41,9 +41,9 @@ GAMMA = 0.999
 EPSILON_START = 1
 EPSILON_END = 0.1
 REPLAY_BUFFER_SIZE = 12000  # Size of the replay buffer, 12000 works
-BATCH_SIZE = 8  # Batch size for training
-LR = 1e-1
-NUM_EPISODES = 100
+BATCH_SIZE = 32  # Batch size for training
+LR = 10
+NUM_EPISODES = 1001
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -85,7 +85,7 @@ def main():
         q_values = dqn(state.unsqueeze(0))
         expected_q_value = torch.max(q_values).item()
         print(f"{formatted_time} Training episode {episode}/{NUM_EPISODES} epsilon={EPSILON:.3f} Expected Q-value: {expected_q_value}")
-        f.write(f"{formatted_time} Training episode {episode}/{NUM_EPISODES} epsilon={EPSILON:.3f} Expected Q-value: {expected_q_value}")
+        f.write(f"{formatted_time} Training episode {episode}/{NUM_EPISODES} epsilon={EPSILON:.3f} Expected Q-value: {expected_q_value}\n")
 
         while True:
             if random.random() < EPSILON:

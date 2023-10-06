@@ -14,16 +14,19 @@ class DQN(nn.Module):
         
         # Load the BallDetectionCNN model
         self.ball_cnn = load_latest_model()
-        for param in self.ball_cnn.parameters():
-            param.requires_grad = False
+        # for param in self.ball_cnn.parameters():
+        #     param.requires_grad = False
         
         # Define the Q-network layers
         self.layers = nn.Sequential(
-                self.ball_cnn,
-                nn.Linear(128, 64),
-                nn.ReLU(),
-                nn.Linear(64, NUM_ACTIONS),
-                )
+            self.ball_cnn,
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            # nn.Linear(64, 64),
+            # nn.BatchNorm1d(1),
+            # nn.ReLU(),
+            nn.Linear(64, NUM_ACTIONS),
+        )
         
     def forward(self, x):
         return self.layers(x)
@@ -39,7 +42,8 @@ EPSILON_START = 1
 EPSILON_END = 0.1
 REPLAY_BUFFER_SIZE = 1200  # Size of the replay buffer, 12000 works
 BATCH_SIZE = 8  # Batch size for training
-LR = 1e-2
+LR = 1
+NUM_EPISODES = 100
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -65,22 +69,21 @@ def main():
     replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
     # Training loop
-    num_episodes = 10000  # Number of episodes to train
-    for episode in range(1, num_episodes):
+    for episode in range(1, NUM_EPISODES):
         current_time = datetime.now()
         formatted_time = current_time.strftime("%d %b %H:%M:%S")
         if episode % 100 == 0:
             print(f"{formatted_time} Saving model")
             save_dqn_model(dqn)
-        EPSILON = EPSILON_START * (1 - episode/num_episodes) + episode/num_episodes * EPSILON_END 
+        EPSILON = EPSILON_START * (1 - episode/NUM_EPISODES) + episode/NUM_EPISODES * EPSILON_END 
         env = GameEnvironment(600, 416)
         state = env.get_state()
         # print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f}")
 
         # Calculate and print the expected Q-value
         q_values = dqn(state.unsqueeze(0))
-        # expected_q_value = torch.max(q_values).item()
-        print(f"{formatted_time} Training episode {episode}/{num_episodes} epsilon={EPSILON:.3f} Q-values: {q_values}")
+        expected_q_value = torch.max(q_values).item()
+        print(f"{formatted_time} Training episode {episode}/{NUM_EPISODES} epsilon={EPSILON:.3f} Expected Q-value: {expected_q_value}")
 
         while True:
             if random.random() < EPSILON:

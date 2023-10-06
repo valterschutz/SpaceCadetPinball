@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Subset
 import os
-from torchvision import transforms
 from sklearn.model_selection import train_test_split
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -22,6 +21,10 @@ def get_device():
 
 device = get_device()
 
+class Uint8ToFloat(nn.Module):
+    def forward(self, sample):
+        return sample.float()
+
 class BallDetectionCNN(nn.Module):
     def __init__(self):
         super(BallDetectionCNN, self).__init__()
@@ -29,6 +32,7 @@ class BallDetectionCNN(nn.Module):
         lin_size = int(SAVED_WIDTH/(2**6)) * int(SAVED_HEIGHT/(2**6)) * 16
 
         self.conv = nn.Sequential(
+            Uint8ToFloat(),
             nn.BatchNorm2d(4),
             nn.Conv2d(4, 16, kernel_size=3, padding=1),
             nn.MaxPool2d(2),
@@ -109,10 +113,6 @@ class CustomDataset(Dataset):
 
         return img_data, lbl_data
 
-class Uint8ToFloatTransform(object):
-    def __call__(self, sample):
-        return sample.float()
-
 def print_model_summary(model):
     print(model)
     total_params = sum(p.numel() for p in model.parameters())
@@ -127,11 +127,9 @@ def create_weights():
 
 def train_model(model, num_epochs, batch_size, lr):
     print_model_summary(model)
-    # Create a transform if needed (e.g., for image preprocessing)
-    transform = transforms.Compose([Uint8ToFloatTransform()])  # Adjust as needed
 
     # Create instances of the custom dataset
-    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data', transform=transform)
+    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data')
 
     # Split the dataset into train and validation subsets
     train_indices, val_indices = train_test_split(list(range(len(custom_dataset))), test_size=0.2, random_state=42)
@@ -230,10 +228,8 @@ def save_model(model):
     torch.save(model.state_dict(), model_path)
 
 def plot_predictions(model):
-    transform = transforms.Compose([Uint8ToFloatTransform()])  # Adjust as needed
-
     # Create instances of the custom dataset
-    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data', transform=transform)
+    custom_dataset = CustomDataset(lbl_data_folder='lbl_data', img_data_folder='img_data')
 
     dataloader = DataLoader(custom_dataset, batch_size=1, shuffle=True)
 

@@ -166,7 +166,8 @@ def train(model, buffer, batch_size=128,
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/agent.pkl"
-        model = torch.load("./gg/agent.pkl")
+        model = DQN(lr=1e-1)
+        model.model = torch.load("./gg/agent.pkl")
     else:
         # Create a new DQN model if not loading
         model = DQN(lr=1e-1)

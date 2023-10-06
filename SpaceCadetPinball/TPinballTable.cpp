@@ -578,7 +578,7 @@ int TPinballTable::Message(MessageCode code, float value)
 		ScoreMultiplier = 0;
 		ScoreAdded = 0;
 		ReflexShotScore = 0;
-		BonusScore = 10000;
+		BonusScore = 0;
 		BonusScoreFlag = false;
 		JackpotScore = 20000;
 		JackpotScoreFlag = false;

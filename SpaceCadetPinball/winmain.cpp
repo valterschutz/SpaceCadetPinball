@@ -125,7 +125,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		}
 		if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024) != 0)
 		{
-			printf("Could not open audio device, continuing without audio.\nSDL Error: %s\n", SDL_GetError());
+			//printf("Could not open audio device, continuing without audio.\nSDL Error: %s\n", SDL_GetError());
 			SDL_ClearError();
 		}
 		else

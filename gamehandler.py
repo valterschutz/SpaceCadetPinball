@@ -6,19 +6,27 @@ import time
 from multiprocessing import shared_memory, Semaphore
 from PIL import Image
 import torch
+import random
 from cnn import get_device
 
+class ActionSpace:
+    def __init__(self, num_actions):
+        self.space = list(range(num_actions))
+
+    def sample(self):
+        return random.choice(self.space)
 
 class GameEnvironment:
-    def __init__(self, width, height):
+    def __init__(self, width, height, plotter=None):
         self.width = width
         self.height = height
         self.save_width = width//2
         self.save_height = height//2
         self.frame_id = 0
         self.same_reward_counter = 0
-        self.k_skip = 4 # How many frames to skip each step
         self.prev_action = None
+        self.plotter=plotter
+        self.action_space = ActionSpace(7)
 
         self.prev_score = np.array([0], dtype=np.int32)
         
@@ -44,7 +52,10 @@ class GameEnvironment:
 
     def __del__(self):
         self.process.kill()
-        print(f"Score: {self.score[0]}")
+        """if self.plotter:
+            self.plotter.process_data(f"Score: {self.score[0]}")
+        else:
+            print(f"Score: {self.score[0]}")"""
         for shm in self.shm_objs:
             shm.close()
             shm.unlink()
@@ -96,6 +107,7 @@ class GameEnvironment:
         else:
             reward = torch.tensor(dirty_reward, dtype=torch.int32)
         self.prev_score[:] = self.score[:]
+        #reward = torch.log(reward + 1)
         reward.to(get_device())
         return reward
 

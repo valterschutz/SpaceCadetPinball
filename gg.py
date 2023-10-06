@@ -13,7 +13,7 @@ from gamehandler import GameEnvironment
 
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=1e-4):
+    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=1e-3):
         self.ball_cnn = load_latest_model()
         for param in self.ball_cnn.parameters():
             param.requires_grad = False
@@ -164,8 +164,13 @@ def train(model, buffer, batch_size=128,
 
 
 if __name__ == "__main__":
-    model = DQN(lr=1e-3)
+    if len(sys.argv) > 1 and sys.argv[1] == "load":
+        # Load the model from "./gg/agent.pkl"
+        model = torch.load("./gg/agent.pkl")
+    else:
+        # Create a new DQN model if not loading
+        model = DQN(lr=1e-1)
 
     buffer_size = 30000
     buffer = PrioritizedReplayBuffer(1, buffer_size)
-    train(model, buffer, batch_size=4, eps_max=1, eps_min=0.1, decrease_eps_steps=100000, test_every_episodes=10)
+    train(model, buffer, batch_size=8, eps_max=1, eps_min=0.1, decrease_eps_steps=100000, test_every_episodes=10)

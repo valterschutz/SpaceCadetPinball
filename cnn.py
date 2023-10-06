@@ -170,7 +170,8 @@ def train_model(model, num_epochs, batch_size, lr):
             # print(f"size of outputs: {outputs.shape}")
             # print(f"size of labels: {labels.shape}")
             # Compute loss
-            loss = criterion(weights*outputs, weights*labels)
+            # loss = criterion(weights*outputs, weights*labels)
+            loss = criterion(outputs, labels)
             
             # Backpropagation and optimization
             loss.backward()

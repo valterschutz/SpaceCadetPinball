@@ -12,7 +12,6 @@ class FrameBuffer:
     def __init__(self,n_frames,frame_size):
         self.buffer_size = n_frames+1
         self.frame_size = frame_size
-        # Store n_frames+1 frames in order to access previous state
         self.reset()
     def append(self,obs):
         # Send to device
@@ -44,9 +43,6 @@ class FrameBuffer:
     def reset(self):
         self.state = torch.zeros(self.buffer_size,*self.frame_size).to(get_device())
         self.fill = 0
-
-
-
 
 class PinballNetwork(nn.Module):
     def __init__(self):
@@ -86,17 +82,10 @@ class PinballAgent:
         discount_factor=0.95,
         buffer_size = 1000,
         pinball_network = None,
+        criterion = nn.MSELoss,
+        optimizer = optim.Adam
     ):
-        """Initialize a Reinforcement Learning agent with an empty dictionary
-        of state-action values (q_values), a learning rate and an epsilon.
-
-        Args:
-            learning_rate: The learning rate
-            initial_epsilon: The initial epsilon value
-            epsilon_decay: The decay for epsilon
-            final_epsilon: The final epsilon value
-            discount_factor: The discount factor for computing the Q-value
-        """
+        device = get_device()
 
         self.action_space = action_space
 
@@ -107,16 +96,14 @@ class PinballAgent:
         self.epsilon_decay = epsilon_decay
         self.final_epsilon = final_epsilon
 
-        # self.training_error = []
-
-        device = get_device()
-        # self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+        # The underlying DQN network
         self.DQN = pinball_network or PinballNetwork()
         self.DQN.train()
         self.DQN.to(device)
-        # self.criterion = nn.MSELoss()
-        self.criterion = nn.HuberLoss()
-        self.optimizer = optim.Adam(self.DQN.parameters(), lr=self.lr)
+
+        # Optimization
+        self.criterion = criterion()
+        self.optimizer = optimizer(self.DQN.parameters(), lr=self.lr)
 
         # Experience replay buffer
         self.buffer_size = buffer_size
@@ -125,8 +112,11 @@ class PinballAgent:
         self.action_buffer = torch.zeros(self.buffer_size,1,dtype=torch.int64).to(device)
         self.reward_buffer = torch.zeros(self.buffer_size,1).to(device)
         self.terminating_buffer = torch.zeros(self.buffer_size,1,dtype=torch.bool).to(device)
-        self.buffer_index = 0
+        self.buffer_index = 0 # Next position to fill in the buffer
         self.buffer_fill = -1 # Up to what index we have filled the buffer
+
+        # In case we save the model, remember when
+        self.save_time = None
 
     def get_action(self, state):
         # Assume only one observation
@@ -136,8 +126,9 @@ class PinballAgent:
 
         # with probability (1 - epsilon) act greedily (exploit)
         else:
-            output = self.DQN(state)
-            return output.squeeze().argmax() # Assume only one output
+            with torch.no_grad():
+                output = self.DQN(state)
+                return output.squeeze().argmax() # Assume only one output
 
     def update(
         self,
@@ -153,12 +144,10 @@ class PinballAgent:
         # Forward pass
         current_outputs = self.DQN(state)
         current_q_value = torch.gather(current_outputs,1,action)
-        # print(f"size of current_q_value: {current_q_value.shape}")
         future_outputs = self.DQN(next_state)
 
         future_v_value = (~terminated) * future_outputs.max(dim=1).values.unsqueeze(-1)
         td_target = reward + self.discount_factor * future_v_value
-        # print(f"size of td_target: {td_target.shape}")
 
         # Loss, backward pass
         loss = self.criterion(current_q_value, td_target)
@@ -168,10 +157,6 @@ class PinballAgent:
         # Store loss
         loss_item = loss.item()
         return loss_item
-
-        # Print mean loss
-        # if PRINT:
-        #     print(loss_item)
 
     def save_experience(self, frame_buffer, action, reward, terminated):
         """Stores a transition in replay experince"""
@@ -206,6 +191,7 @@ class PinballAgent:
         path = f"models/{file_name}"
         torch.save(self.DQN.state_dict(), path)
         print(f"Model saved to '{path}'")
+        self.save_time = formatted_datetime
 
 def get_device():
     # Get CUDA device
@@ -237,3 +223,13 @@ def load_model():
         print(f"Created new model")
     return model
 
+def modified_reward(reward, action):
+    """Given a true reward and an action take it, modify it so all positive awards have value 1 and actions are punished"""
+    reward = float(reward)
+    if reward > 0:
+        reward = 1
+    else:
+        reward = 0
+    # if action != 0:
+    #     reward -= 0.1
+    return reward

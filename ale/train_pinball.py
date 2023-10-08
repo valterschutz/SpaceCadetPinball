@@ -12,10 +12,10 @@ PRINT = True
 env = gym.make("ALE/VideoPinball-v5")
 
 # hyperparameters
-learning_rate = 1e-2
+learning_rate = 1e-4
 n_episodes = 201
 initial_epsilon = 1.0
-final_epsilon = 0.1
+final_epsilon = 0.5
 epsilon_decay = (initial_epsilon-final_epsilon) / n_episodes
 batch_size = 32
 discount_factor = 0.99

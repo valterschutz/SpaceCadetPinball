@@ -12,7 +12,7 @@ PRINT = True
 env = gym.make("ALE/VideoPinball-v5")
 
 # hyperparameters
-learning_rate = 1e-1
+learning_rate = 1e-2
 n_episodes = 201
 initial_epsilon = 1.0
 epsilon_decay = initial_epsilon / (n_episodes / 2)  # reduce the exploration over time

@@ -121,12 +121,11 @@ class PinballAgent:
         # In case we save the model, remember when
         self.save_time = None
 
-    def get_action(self, state):
+    def get_action(self, state, explore=True):
         # Assume only one observation
         # with probability epsilon return a random action to explore the environment
-        if np.random.random() < self.epsilon:
+        if explore and np.random.random() < self.epsilon:
             return self.action_space.sample()
-
         # with probability (1 - epsilon) act greedily (exploit)
         else:
             self.DQN.eval()

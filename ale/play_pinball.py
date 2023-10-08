@@ -18,7 +18,7 @@ while True:
 
     # play one episode
     while not done:
-        action = agent.get_action(fb.values().unsqueeze(0))
+        action = agent.get_action(fb.values().unsqueeze(0), explore=False)
 
         next_obs, reward, terminated, truncated, info = env.step(action)
         fb.append(next_obs)

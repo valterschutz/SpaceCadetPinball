@@ -13,7 +13,7 @@ from gamehandler import GameEnvironment
 
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=1e-3):
+    def __init__(self, action_space, action_size=7, gamma=0.99, tau=0.01, lr=1e-3, initial_epsilon=0.9, final_epsilon=0.1, epsilon_decay=0.0):
         self.ball_cnn = load_latest_model()
         for param in self.ball_cnn.parameters():
             param.requires_grad = False
@@ -31,6 +31,11 @@ class DQN:
 
         self.gamma = gamma
         self.tau = tau
+        self.epsilon = initial_epsilon
+        self.final_epsilon = final_epsilon
+        self.epsilon_decay = epsilon_decay
+        self.action_space = action_space
+
 
     def soft_update(self, target, source):
         for tp, sp in zip(target.parameters(), source.parameters()):
@@ -38,10 +43,15 @@ class DQN:
 
     def act(self, state, print_Q=False):
         with torch.no_grad():
-            state = torch.as_tensor(state, dtype=torch.float).to(device())
-            if print_Q:
-                print(f"Q values at game start: {self.model(state).cpu().numpy()[0]}")
-            action = torch.argmax(self.model(state)).cpu().numpy().item()
+            # With probability epsilon do random action
+            if random.random() < self.epsilon:
+                action = self.action_space.sample()
+            # With probability 1-epsilon follow greedy policy
+            else:
+                state = torch.as_tensor(state, dtype=torch.float).to(device())
+                if print_Q:
+                    print(f"Q values at game start: {self.model(state).cpu().numpy()[0]}")
+                action = torch.argmax(self.model(state)).cpu().numpy().item()
         return action
 
     def update(self, batch, weights=1):
@@ -68,6 +78,10 @@ class DQN:
     def save(self):
         torch.save(self.model, "gg/agent.pkl")
 
+    def decay_epsilon(self):
+        self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
+
+
 def evaluate_policy(agent, episodes=5):
 
     returns = []
@@ -82,22 +96,19 @@ def evaluate_policy(agent, episodes=5):
         state = env.get_state()
 
         while not done:
-            if random.random() < eps:
-                action = env.action_space.sample()
-            else:
-                action = model.act(state.unsqueeze(0), print_Q=print_Q)
-                print_Q = False
+            action = model.act(state.unsqueeze(0), print_Q=print_Q)
+            print_Q = False
             state, reward = env.step(action)
             done = env.is_done()
             total_reward += reward
         returns.append(total_reward)
+        agent.decay_epsilon()
         del env
         time.sleep(0.01)
         
     return np.mean(returns), np.std(returns)
 
-def train(model, buffer, batch_size=128,
-        eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
+def train(model, buffer, n_episodes, batch_size=128, test_every_episodes=50):
 
     env = GameEnvironment(600, 416)
 
@@ -111,7 +122,7 @@ def train(model, buffer, batch_size=128,
     state = env.get_state()
     step = 0
     total_reward = 0
-    while True:
+    while episodes != n_episodes:
         if done:
             print(f"Episode {episodes} done... Total reward = {total_reward}")
             total_reward = 0
@@ -121,7 +132,7 @@ def train(model, buffer, batch_size=128,
             if episodes % test_every_episodes == 0:
                 mean, std = evaluate_policy(model, episodes=1)
 
-                print(f"Step: {step}, Reward mean: {mean:.2f}, Loss: {total_loss / loss_count:.4f}, Eps: {eps}\n")
+                print(f"Step: {step}, Reward mean: {mean:.2f}, Loss: {total_loss / loss_count:.4f}, Eps: {model.epsilon}\n")
 
                 if mean > best_reward:
                     best_reward = mean
@@ -135,12 +146,8 @@ def train(model, buffer, batch_size=128,
             state = env.get_state()
             episodes += 1
 
-        eps = eps_max - (eps_max - eps_min) * step / decrease_eps_steps
-
-        if random.random() < eps:
-            action = env.action_space.sample()
-        else:
-            action = model.act(state.unsqueeze(0))
+        model.decay_epsilon()
+        action = model.act(state.unsqueeze(0))
 
         next_state, reward = env.step(action)
         total_reward += reward
@@ -164,14 +171,24 @@ def train(model, buffer, batch_size=128,
 
 
 if __name__ == "__main__":
+    env = GameEnvironment(600, 416)
+    action_space = env.action_space
+    del env
+    n_episodes = 10000
+    initial_epsilon = 0.99
+    final_epsilon = 0.1
+    epsilon_decay = final_epsilon / (n_episodes / 2)  # reduce the exploration over time
+    model = DQN(
+        action_space,
+        lr=1e-1,
+        initial_epsilon=initial_epsilon,
+        final_epsilon=final_epsilon,
+        epsilon_decay=epsilon_decay
+    )
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/agent.pkl"
-        model = DQN(lr=1e-1)
         model.model = torch.load("./gg/agent.pkl")
-    else:
-        # Create a new DQN model if not loading
-        model = DQN(lr=1e-1)
 
     buffer_size = 30000
     buffer = PrioritizedReplayBuffer(1, buffer_size)
-    train(model, buffer, batch_size=8, eps_max=1, eps_min=0.1, decrease_eps_steps=100000, test_every_episodes=10)
+    train(model, buffer, n_episodes, batch_size=8, test_every_episodes=10)

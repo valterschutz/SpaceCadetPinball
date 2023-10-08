@@ -12,7 +12,7 @@ PRINT = True
 env = gym.make("ALE/VideoPinball-v5")
 
 # hyperparameters
-learning_rate = 1e-4
+learning_rate = 1e-1
 n_episodes = 201
 initial_epsilon = 1.0
 epsilon_decay = initial_epsilon / (n_episodes / 2)  # reduce the exploration over time
@@ -50,7 +50,7 @@ for episode in tqdm(range(n_episodes)):
 
     # Print estimated Q-values for starting state
     if PRINT:
-        print(agent.DQN(fb.values().unsqueeze(0)))
+        print(agent.get_Q(fb.values()))
 
     # play one episode
     episode_reward = 0

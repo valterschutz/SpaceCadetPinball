@@ -50,13 +50,16 @@ class PinballNetwork(nn.Module):
 
         self.conv_layers = nn.Sequential(
             nn.Conv2d(4,8,8,stride=4,padding=2),
+            nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.Conv2d(8,16,4,stride=2,padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU()
         )
 
         self.lin_layers = nn.Sequential(
             nn.Linear(8320, 256),  # TODO: remove hard-coded value
+            nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Linear(256, 9)
         )
@@ -126,6 +129,7 @@ class PinballAgent:
 
         # with probability (1 - epsilon) act greedily (exploit)
         else:
+            self.DQN.eval()
             with torch.no_grad():
                 output = self.DQN(state)
                 return output.squeeze().argmax() # Assume only one output
@@ -139,6 +143,8 @@ class PinballAgent:
         terminated
     ):
         """Updates the Q-value of an action. Should work with batches."""
+        self.DQN.train()
+
         self.optimizer.zero_grad()
 
         # Forward pass
@@ -192,6 +198,13 @@ class PinballAgent:
         torch.save(self.DQN.state_dict(), path)
         print(f"Model saved to '{path}'")
         self.save_time = formatted_datetime
+
+    def get_Q(self, state):
+        """Returns Q-values for a single state"""
+        self.DQN.eval()
+        with torch.no_grad():
+            Q = self.DQN(state.unsqueeze(0))
+        return Q
 
 def get_device():
     # Get CUDA device

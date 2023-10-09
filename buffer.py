@@ -7,7 +7,7 @@ from cnn import get_device as device
 
 
 class PrioritizedReplayBuffer:
-    def __init__(self, action_size, buffer_size, eps=1e-2, alpha=0.1, beta=0.1):
+    def __init__(self, action_size, buffer_size, eps=1e-2, alpha=0.5, beta=0.5):
         self.tree = SumTree(size=buffer_size)
 
         # PER params

@@ -1,5 +1,8 @@
 import time
+import glob
+import os
 import sys
+import datetime
 import torch
 import random
 import numpy as np
@@ -11,20 +14,24 @@ from cnn import get_device as device
 from cnn import load_latest_model
 from gamehandler import GameEnvironment
 
+BUFFER_SIZE = 40000
 
 class DQN:
+<<<<<<< Updated upstream
     def __init__(self, action_space, action_size=7, gamma=0.99, tau=0.01, lr=1e-3, initial_epsilon=0.9, final_epsilon=0.1, epsilon_decay=0.0):
+=======
+    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025):
+        print(device())
+>>>>>>> Stashed changes
         self.ball_cnn = load_latest_model()
         for param in self.ball_cnn.parameters():
             param.requires_grad = False
         self.model = nn.Sequential(
             self.ball_cnn,
             nn.ReLU(),
-            nn.Linear(128, 32),
+            nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(32, 32),
-            nn.ReLU(),
-            nn.Linear(32, action_size)
+            nn.Linear(64, action_size)
         ).to(device())
         self.target_model = deepcopy(self.model).to(device())
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
@@ -43,6 +50,7 @@ class DQN:
 
     def act(self, state, print_Q=False):
         with torch.no_grad():
+<<<<<<< Updated upstream
             # With probability epsilon do random action
             if random.random() < self.epsilon:
                 action = self.action_space.sample()
@@ -52,6 +60,12 @@ class DQN:
                 if print_Q:
                     print(f"Q values at game start: {self.model(state).cpu().numpy()[0]}")
                 action = torch.argmax(self.model(state)).cpu().numpy().item()
+=======
+            state = torch.as_tensor(state, dtype=torch.float).to(device())
+            if print_Q:
+                print(f"   Q values at game start: {self.model(state).cpu().numpy()[0]}")
+            action = torch.argmax(self.model(state)).cpu().numpy().item()
+>>>>>>> Stashed changes
         return action
 
     def update(self, batch, weights=1):
@@ -76,14 +90,16 @@ class DQN:
         return loss.item(), td_error
 
     def save(self):
-        torch.save(self.model, "gg/agent.pkl")
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        model_name = f"model_{current_time}.pkl"
+        torch.save(self.model, f"gg/{model_name}")
 
     def decay_epsilon(self):
         self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
 
 
 def evaluate_policy(agent, episodes=5):
-
+    
     returns = []
     eps = 0.1
 
@@ -108,20 +124,18 @@ def evaluate_policy(agent, episodes=5):
         
     return np.mean(returns), np.std(returns)
 
+<<<<<<< Updated upstream
 def train(model, buffer, n_episodes, batch_size=128, test_every_episodes=50):
+=======
 
-    env = GameEnvironment(600, 416)
-
-    rewards_total, stds_total = [], []
-    loss_count, total_loss = 0, 0
+def train(model, buffer, batch_size=128,
+        eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
+>>>>>>> Stashed changes
 
     episodes = 0
-    best_reward = -np.inf
-
-    done = False
-    state = env.get_state()
     step = 0
     total_reward = 0
+<<<<<<< Updated upstream
     while episodes != n_episodes:
         if done:
             print(f"Episode {episodes} done... Total reward = {total_reward}")
@@ -137,15 +151,61 @@ def train(model, buffer, n_episodes, batch_size=128, test_every_episodes=50):
                 if mean > best_reward:
                     best_reward = mean
                     model.save()
+=======
+    loss_count, total_loss = 0, 0
 
-                rewards_total.append(mean)
-                stds_total.append(std)
-            ######## EVALUATE/SAVE END #########
-            done = False
+    done = False
+    training_started = False
+    while True:
+        if loss_count and training_started:
+            time.sleep(0.01)
+            evaluate_policy(model, episodes=1)
+            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
+            model.save()
+            loss_count, total_loss = 0, 0
+>>>>>>> Stashed changes
+
+        # Run some episodes
+        for _ in range(test_every_episodes):
+            total_reward = 0
             env = GameEnvironment(600, 416)
             state = env.get_state()
+            while not done:
+
+                # Action
+                eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
+                if random.random() < eps:
+                    action = env.action_space.sample()
+                else:
+                    action = model.act(state.unsqueeze(0))
+                
+                # Step and save in buffer
+                next_state, reward = env.step(action)
+                total_reward += reward
+                done = env.is_done()
+                buffer.add((state, action, reward, next_state, int(done)))
+                state = next_state
+
+                # Backprop
+                if step == BUFFER_SIZE//10:
+                    print("Starting backprop")
+                    training_started = True
+                if step > BUFFER_SIZE//10:
+                    batch, weights, tree_idxs = buffer.sample(batch_size)
+                    loss, td_error = model.update(batch, weights=weights)
+                    buffer.update_priorities(tree_idxs, td_error.numpy())
+                    total_loss += loss
+                    loss_count += 1
+                step += 1
+
+            # Episode finished
+            done = False
+            del env
+            time.sleep(0.01)
+            print(f"   Episode {episodes} done... Total reward = {total_reward:.3f}")
             episodes += 1
 
+<<<<<<< Updated upstream
         model.decay_epsilon()
         action = model.act(state.unsqueeze(0))
 
@@ -168,7 +228,15 @@ def train(model, buffer, n_episodes, batch_size=128, test_every_episodes=50):
 
 
     return np.array(rewards_total), np.array(stds_total)
+=======
+def print_model_layers(model):
+    for name, param in model.named_parameters():
+        print(f"Layer: {name}, Requires Gradients: {param.requires_grad}")
+>>>>>>> Stashed changes
 
+def run_train_loop(model):
+    buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
+    train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=15)
 
 if __name__ == "__main__":
     env = GameEnvironment(600, 416)
@@ -187,8 +255,31 @@ if __name__ == "__main__":
     )
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/agent.pkl"
+<<<<<<< Updated upstream
         model.model = torch.load("./gg/agent.pkl")
 
     buffer_size = 30000
     buffer = PrioritizedReplayBuffer(1, buffer_size)
     train(model, buffer, n_episodes, batch_size=8, test_every_episodes=10)
+=======
+        model = DQN(lr=0.00025)
+        model_directory = "gg/"
+        # Get a list of all model files in the directory
+        model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
+        # Sort the model files by timestamp (assuming the timestamp format is consistent)
+        model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        # Check if there are any model files
+        if model_files:
+            latest_model_file = model_files[0]
+            model.model = torch.load(latest_model_file).to(device())
+            model.target_model = deepcopy(model.model).to(device())
+            print(f"Loaded {latest_model_file}...")
+    else:
+        # Create a new DQN model if not loading
+        model = DQN(lr=0.00025)
+    #print_model_layers(model.model)
+    #print_model_layers(model.target_model)
+    run_train_loop(model)
+
+
+>>>>>>> Stashed changes

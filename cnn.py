@@ -218,7 +218,7 @@ def load_latest_model():
     # Select the most recent model file
     latest_model_path = model_files[0]
 
-    print(f"Loading {latest_model_path}...")
+    print(f"\nLoading CNN model from {latest_model_path}...")
 
     model = BallDetectionCNN()
     model.load_state_dict(torch.load(latest_model_path, map_location=device))

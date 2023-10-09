@@ -81,7 +81,8 @@ class GameEnvironment:
         
     def is_done(self):
         if self.sem[0] < 0 or self.same_reward_counter > 500: #bumper bug?
-            # print(f"in is_done sem is {self.sem[0]}")
+            if self.same_reward_counter > 500:
+                print("Bumper bug...", end=" ")
             return True
         return False
 
@@ -108,6 +109,7 @@ class GameEnvironment:
             reward = torch.tensor(dirty_reward, dtype=torch.int32)
         self.prev_score[:] = self.score[:]
         #reward = torch.log(reward + 1)
+        reward = reward/10000 # Rainbow DQN clips rewards at +-1
         reward.to(get_device())
         return reward
 

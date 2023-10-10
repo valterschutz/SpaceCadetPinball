@@ -2730,8 +2730,23 @@ void control::BallDrainControl(MessageCode code, TPinballComponent* caller)
 			plunger->Message(MessageCode::PlungerStartFeedTimer, 0.0);
 		}
 	}
+
 	else if (code == MessageCode::ControlCollision)
 	{
+		{
+			TableG->ChangeBallCount(TableG->BallCount - 1);
+			if (TableG->CurrentPlayer + 1 != TableG->PlayerCount || TableG->BallCount)
+			{
+				TableG->Message(MessageCode::SwitchToNextPlayer, 0.0);
+				lite199->MessageField = 0;
+			}
+			else
+			{
+				lite199->MessageField = 1;
+			}
+			soundwave27->Play(nullptr, "BallDrainControl8");
+		}
+		/*
 		if (table_unlimited_balls)
 		{
 			drain->Message(MessageCode::Reset, 0.0);
@@ -2896,7 +2911,9 @@ void control::BallDrainControl(MessageCode code, TPinballComponent* caller)
 					TableG->BonusScore = 0;
 			}
 		}
+		*/
 	}
+	
 }
 
 

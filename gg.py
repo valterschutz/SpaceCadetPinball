@@ -45,7 +45,7 @@ class DQN:
         with torch.no_grad():
             state = torch.as_tensor(state, dtype=torch.float).to(device())
             if print_Q:
-                print(f"   Q values at game start: {self.model(state).cpu().numpy()[0]}")
+                append_to_file(f"   Q values at game start: {self.model(state).cpu().numpy()[0]}")
             action = torch.argmax(self.model(state)).cpu().numpy().item()
         return action
 
@@ -121,7 +121,7 @@ def train(model, buffer, batch_size=128,
         if loss_count and training_started:
             time.sleep(0.1)
             evaluate_policy(model, episodes=1)
-            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
+            append_to_file(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
             model.save()
             loss_count, total_loss = 0, 0
 
@@ -165,6 +165,13 @@ def train(model, buffer, batch_size=128,
             print(f"   Episode {episodes} done... Total reward = {total_reward:.3f}")
             episodes += 1
 
+def append_to_file(data):
+    print(data)
+    current_pid = os.getpid()
+    file_path = f"textdata/{pid}.txt"
+    with open(file_path, "a") as file:
+        file.write(data)
+
 def print_model_layers(model):
     for name, param in model.named_parameters():
         print(f"Layer: {name}, Requires Gradients: {param.requires_grad}")
@@ -174,9 +181,10 @@ def run_train_loop(model):
     train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=15)
 
 if __name__ == "__main__":
+    lr = 1e-7
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/"
-        model = DQN(lr=1e-7)
+        model = DQN(lr=lr)
         model_directory = "gg/"
         # Get a list of all model files in the directory
         model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
@@ -187,10 +195,11 @@ if __name__ == "__main__":
             latest_model_file = model_files[0]
             model.model = torch.load(latest_model_file).to(device())
             model.target_model = deepcopy(model.model).to(device())
+            model.optimizer = optim.Adam(model.model.parameters(), lr=lr)
             print(f"Loaded {latest_model_file}...")
     else:
         # Create a new DQN model if not loading
-        model = DQN(lr=1e-7)
+        model = DQN(lr=lr)
     print_model_layers(model.model)
     print_model_layers(model.target_model)
     run_train_loop(model)

@@ -205,7 +205,7 @@ def print_model_layers(model):
 
 def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=2, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=2)
+    train(agent, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=20)
 
 if __name__ == "__main__":
     lr = 5e-7

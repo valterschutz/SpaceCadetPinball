@@ -17,10 +17,12 @@ from gamehandler import GameEnvironment
 BUFFER_SIZE = 40000
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025):
+    def __init__(self, action_size=7, gamma=0.98, tau=0.01, lr=0.00025):
         print(device())
         self.ball_cnn = load_latest_model()
-        for param in self.ball_cnn.parameters():
+        for (i, param) in enumerate(self.ball_cnn.parameters()):
+            if i > 2:
+                break
             param.requires_grad = False
         self.model = nn.Sequential(
             self.ball_cnn,
@@ -73,9 +75,6 @@ class DQN:
         model_name = f"model_{current_time}.pkl"
         torch.save(self.model, f"gg/{model_name}")
 
-    def decay_epsilon(self):
-        self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
-
 
 def evaluate_policy(agent, episodes=5):
     
@@ -89,17 +88,21 @@ def evaluate_policy(agent, episodes=5):
         env = GameEnvironment(600, 416)
         done, total_reward = False, 0
         state = env.get_state()
-
+        print("Actions:")
         while not done:
-            action = model.act(state.unsqueeze(0), print_Q=print_Q)
-            print_Q = False
+            if random.random() < eps:
+                action = env.action_space.sample()
+            else:
+                action = model.act(state.unsqueeze(0), print_Q)
+                print("RrLl!.p"[action], end="")
+                print_Q = False
             state, reward = env.step(action)
             done = env.is_done()
             total_reward += reward
         returns.append(total_reward)
-        agent.decay_epsilon()
+        print("")
         del env
-        time.sleep(0.01)
+        time.sleep(0.1)
         
     return np.mean(returns), np.std(returns)
 
@@ -116,7 +119,7 @@ def train(model, buffer, batch_size=128,
     training_started = False
     while True:
         if loss_count and training_started:
-            time.sleep(0.01)
+            time.sleep(0.1)
             evaluate_policy(model, episodes=1)
             print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
             model.save()
@@ -158,7 +161,7 @@ def train(model, buffer, batch_size=128,
             # Episode finished
             done = False
             del env
-            time.sleep(0.01)
+            time.sleep(0.1)
             print(f"   Episode {episodes} done... Total reward = {total_reward:.3f}")
             episodes += 1
 
@@ -173,7 +176,7 @@ def run_train_loop(model):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/"
-        model = DQN(lr=0.00025)
+        model = DQN(lr=1e-7)
         model_directory = "gg/"
         # Get a list of all model files in the directory
         model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
@@ -187,9 +190,9 @@ if __name__ == "__main__":
             print(f"Loaded {latest_model_file}...")
     else:
         # Create a new DQN model if not loading
-        model = DQN(lr=0.00025)
-    #print_model_layers(model.model)
-    #print_model_layers(model.target_model)
+        model = DQN(lr=1e-7)
+    print_model_layers(model.model)
+    print_model_layers(model.target_model)
     run_train_loop(model)
 
 

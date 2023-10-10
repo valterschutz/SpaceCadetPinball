@@ -75,7 +75,6 @@ class DQN:
         model_name = f"model_{current_time}.pkl"
         torch.save(self.model, f"gg/{model_name}")
 
-
 def evaluate_policy(agent, episodes=5):
     
     returns = []
@@ -186,7 +185,7 @@ def print_model_layers(model):
 
 def run_train_loop(model):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=15)
+    train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=10)
 
 if __name__ == "__main__":
     lr = 5e-7

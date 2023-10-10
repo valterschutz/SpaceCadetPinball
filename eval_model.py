@@ -1,4 +1,5 @@
 import time
+import sys
 import itertools
 import glob
 import os
@@ -48,12 +49,12 @@ model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
 # Sort the model files by timestamp (assuming the timestamp format is consistent)
 model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
 # Check if there are any model files
-if model_files:
+if len(sys.argv) > 1:
+    latest_model_file = sys.argv[1]
+else:
     latest_model_file = model_files[0]
-    agent.model = torch.load(latest_model_file).to(device())
-    agent.target_model = deepcopy(agent.model).to(device())
-    print(f"Loaded {latest_model_file}...")
-    evaluate_policy(agent)
-
-
-
+print(f"Loading model {latest_model_file}...")
+agent.model = torch.load(latest_model_file).to(device())
+agent.target_model = deepcopy(agent.model).to(device())
+print(f"Loaded {latest_model_file}...")
+evaluate_policy(agent)

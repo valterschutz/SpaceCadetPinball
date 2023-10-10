@@ -45,7 +45,7 @@ class DQN:
         with torch.no_grad():
             state = torch.as_tensor(state, dtype=torch.float).to(device())
             if print_Q:
-                append_to_file(f"   Q values at game start: {self.model(state).cpu().numpy()[0]}")
+                append_to_file(f"Q values at game start: {self.model(state).cpu().numpy()[0]}\n")
             action = torch.argmax(self.model(state)).cpu().numpy().item()
         return action
 
@@ -120,7 +120,8 @@ def train(model, buffer, batch_size=128,
     while True:
         if loss_count and training_started:
             time.sleep(0.1)
-            evaluate_policy(model, episodes=1)
+            eval_reward, _ = evaluate_policy(model, episodes=1)
+            append_to_file(f"Evaluation reward: {eval_reward}")
             append_to_file(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
             model.save()
             loss_count, total_loss = 0, 0
@@ -167,8 +168,15 @@ def train(model, buffer, batch_size=128,
 
 def append_to_file(data):
     print(data)
-    current_pid = os.getpid()
+    pid = os.getpid()
     file_path = f"textdata/{pid}.txt"
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        # Create the file if it doesn't exist
+        with open(file_path, 'w'):
+            pass  # This will create an empty file
+    
     with open(file_path, "a") as file:
         file.write(data)
 

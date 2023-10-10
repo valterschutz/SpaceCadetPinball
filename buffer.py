@@ -1,10 +1,8 @@
 import torch
 import random
-import numpy as np
 
 from tree import SumTree
 from cnn import get_device as device
-
 
 class PrioritizedReplayBuffer:
     def __init__(self, action_size, buffer_size, eps=1e-2, alpha=0.5, beta=0.5):

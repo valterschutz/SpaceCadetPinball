@@ -91,16 +91,16 @@ class GameEnvironment:
         self.prev_action = action
         return np.array([ord(action)], dtype=np.uint8)
 
-    def get_reward(self, dirty_reward=None):
-        if dirty_reward == None:
-            reward = self.score[0] - self.prev_score[0]
-            if reward == 0:
-                self.same_reward_counter += 1
-            else:
-                self.same_reward_counter = 0
-            reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
+    def get_reward(self):
+        if self.is_done():
+            reward = -10000
         else:
-            reward = torch.tensor(dirty_reward, dtype=torch.int32)
+            reward = self.score[0] - self.prev_score[0]
+        if reward == 0:
+            self.same_reward_counter += 1
+        else:
+            self.same_reward_counter = 0
+        reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
         self.prev_score[:] = self.score[:]
         #reward = torch.log(reward + 1)
         reward = reward/10000 # Rainbow DQN clips rewards at +-1
@@ -124,10 +124,7 @@ class GameEnvironment:
         # sem is either < 0 or 4 here
         if self.sem[0] == 4:
             self.sem[:] = self.init_sem[:]
-            dirty_reward = None
-        else:
-            dirty_reward = None
-        state, reward = self.get_state(), self.get_reward(dirty_reward=dirty_reward)
+        state, reward = self.get_state(), self.get_reward()
         self.frame_id += 4
         return state, reward
 

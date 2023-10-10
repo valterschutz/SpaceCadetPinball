@@ -98,8 +98,6 @@ class GameEnvironment:
                 self.same_reward_counter += 1
             else:
                 self.same_reward_counter = 0
-                if reward < 0:
-                    reward = 0
             reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
         else:
             reward = torch.tensor(dirty_reward, dtype=torch.int32)

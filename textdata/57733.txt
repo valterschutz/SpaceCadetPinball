@@ -50,3 +50,17 @@ Q values at game start: [2.0566628 2.0205503 1.9741654 1.9824009 2.0095658 2.000
 Evaluation reward: 0.4574007987976074Summary of last 15 episodes: Step: 140746, Mean Loss: 0.693976, Eps: 0.9014785
 Q values at game start: [2.1390357 2.081917  2.0349247 2.0605795 2.06868   2.056858  2.0829463]
 Evaluation reward: 0.2731042802333832Summary of last 15 episodes: Step: 147052, Mean Loss: 0.847057, Eps: 0.8970643
+Q values at game start: [2.2087624 2.1591673 2.1156926 2.1343765 2.146554  2.1289337 2.1587818]
+Evaluation reward: 0.2556009888648987Summary of last 15 episodes: Step: 153633, Mean Loss: 0.747828, Eps: 0.8924576
+Q values at game start: [2.2885625 2.2354126 2.1929514 2.214412  2.2222548 2.2099078 2.2284274]
+Evaluation reward: 0.5549048781394958Summary of last 15 episodes: Step: 160379, Mean Loss: 0.788792, Eps: 0.8877354
+Q values at game start: [2.3198764 2.278192  2.2404196 2.2554073 2.270425  2.2530007 2.273433 ]
+Evaluation reward: 0.5454010963439941Summary of last 15 episodes: Step: 167057, Mean Loss: 0.633824, Eps: 0.8830608
+Q values at game start: [2.1176267 2.1212702 2.0898924 2.1059742 2.1346107 2.1035812 2.1221342]
+Evaluation reward: 0.6008040308952332Summary of last 15 episodes: Step: 174050, Mean Loss: 0.137372, Eps: 0.8781657
+Q values at game start: [2.1524713 2.1212687 2.0845594 2.110978  2.1529284 2.1044035 2.1317685]
+Evaluation reward: 1.3364979028701782Summary of last 15 episodes: Step: 180426, Mean Loss: 1.246485, Eps: 0.8737025
+Q values at game start: [2.1773484 2.1482038 2.1059253 2.1224792 2.1830285 2.1326451 2.1540098]
+Evaluation reward: 8.772068977355957Summary of last 15 episodes: Step: 186061, Mean Loss: 1.525837, Eps: 0.869758
+Q values at game start: [2.1974094 2.1707015 2.1230326 2.1391785 2.2079537 2.1579502 2.1657555]
+Evaluation reward: 0.5459009408950806Summary of last 15 episodes: Step: 192305, Mean Loss: 1.443940, Eps: 0.8653872

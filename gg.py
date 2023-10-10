@@ -189,7 +189,7 @@ def run_train_loop(model):
     train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=15)
 
 if __name__ == "__main__":
-    lr = 1e-7
+    lr = 5e-7
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         # Load the model from "./gg/"
         model = DQN(lr=lr)

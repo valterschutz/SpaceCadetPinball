@@ -92,10 +92,7 @@ class GameEnvironment:
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
-        if self.is_done():
-            reward = -10000
-        else:
-            reward = self.score[0] - self.prev_score[0]
+        reward = self.score[0] - self.prev_score[0]
         if reward == 0:
             self.same_reward_counter += 1
         else:

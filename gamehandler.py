@@ -1,10 +1,6 @@
 import subprocess
-import os
-import ctypes
 import numpy as np
-import time
-from multiprocessing import shared_memory, Semaphore
-from PIL import Image
+from multiprocessing import shared_memory
 import torch
 import random
 from cnn import get_device

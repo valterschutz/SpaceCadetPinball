@@ -64,3 +64,19 @@ Q values at game start: [2.1773484 2.1482038 2.1059253 2.1224792 2.1830285 2.132
 Evaluation reward: 8.772068977355957Summary of last 15 episodes: Step: 186061, Mean Loss: 1.525837, Eps: 0.869758
 Q values at game start: [2.1974094 2.1707015 2.1230326 2.1391785 2.2079537 2.1579502 2.1657555]
 Evaluation reward: 0.5459009408950806Summary of last 15 episodes: Step: 192305, Mean Loss: 1.443940, Eps: 0.8653872
+Q values at game start: [2.2639098 2.2407877 2.185721  2.2008104 2.2690978 2.2209437 2.2576191]
+Evaluation reward: 0.41910094022750854Summary of last 15 episodes: Step: 198688, Mean Loss: 2.134107, Eps: 0.8609191
+Q values at game start: [2.3619978 2.345585  2.281993  2.2997644 2.369211  2.3289576 2.373866 ]
+Evaluation reward: 1.3277969360351562Summary of last 15 episodes: Step: 205409, Mean Loss: 2.255169, Eps: 0.8562144
+Q values at game start: [2.4719455 2.4490268 2.3850179 2.4026597 2.467901  2.4373336 2.4766805]
+Evaluation reward: 0.3276009261608124Summary of last 15 episodes: Step: 212224, Mean Loss: 2.193597, Eps: 0.8514439
+Q values at game start: [2.4837852 2.4956927 2.4262006 2.4406776 2.48223   2.4864001 2.5205834]
+Evaluation reward: 1.8322973251342773Summary of last 15 episodes: Step: 219110, Mean Loss: 1.171972, Eps: 0.8466237
+Q values at game start: [2.5320327 2.5436938 2.4787781 2.4966903 2.5288882 2.5478776 2.5789878]
+Evaluation reward: 0.9487042427062988Summary of last 15 episodes: Step: 226411, Mean Loss: 0.859212, Eps: 0.841513
+Q values at game start: [2.5762863 2.5819385 2.5201192 2.5416696 2.56348   2.5874822 2.6225898]
+Evaluation reward: 1.4641984701156616Summary of last 15 episodes: Step: 232711, Mean Loss: 0.801944, Eps: 0.837103
+Q values at game start: [2.430476  2.431135  2.375919  2.3959503 2.4312959 2.4408357 2.4258735]
+Evaluation reward: 0.9892004728317261Summary of last 15 episodes: Step: 239793, Mean Loss: 0.123482, Eps: 0.8321456
+Q values at game start: [2.2620032 2.2644436 2.213399  2.2170472 2.2619786 2.2582133 2.2549386]
+Evaluation reward: 5.660303115844727Summary of last 15 episodes: Step: 245742, Mean Loss: 0.103033, Eps: 0.8279813

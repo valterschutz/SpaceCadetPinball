@@ -33,6 +33,7 @@ class DQN:
         ).to(device())
         self.target_model = deepcopy(self.model).to(device())
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.criterion = nn.MSELoss()
 
         self.gamma = gamma
         self.tau = tau
@@ -59,7 +60,7 @@ class DQN:
         assert Q.shape == Q_target.shape, f"{Q.shape}, {Q_target.shape}"
 
         td_error = torch.abs(Q - Q_target).detach().cpu()
-        loss = torch.mean((Q - Q_target)**2 * weights.to(device()))
+        loss = self.criterion(Q,Q_target)
 
         self.optimizer.zero_grad()
         loss.backward()

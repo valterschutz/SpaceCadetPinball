@@ -245,6 +245,7 @@ def plot_predictions(model):
     with torch.no_grad():
         i = 1
         for inputs, labels in iter(dataloader):
+            print(i)
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = model(inputs)
 
@@ -258,7 +259,6 @@ def plot_predictions(model):
                 break
 
     plt.savefig("figs/latest_fig.png")
-    plt.show()
 
             # loss = criterion(outputs, labels)
             # val_loss += loss.item()

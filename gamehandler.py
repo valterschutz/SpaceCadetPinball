@@ -89,7 +89,7 @@ class GameEnvironment:
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
-        self.extra_reward = 0 if action in "RL!" else 0
+        self.extra_reward = 0 if action in "RrLl!." else 0
         if action == self.prev_action:
             action = "p"
         self.prev_action = action

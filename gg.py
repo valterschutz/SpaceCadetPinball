@@ -8,6 +8,7 @@ import random
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+import pickle
 from copy import deepcopy
 from buffer import PrioritizedReplayBuffer
 from cnn import get_device as device
@@ -17,8 +18,8 @@ from gamehandler import GameEnvironment
 BUFFER_SIZE = 40000
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.98, tau=0.01, lr=0.00025):
-        print(device())
+    def __init__(self, action_size=7, gamma=0.98, tau=0.01, lr=0.00025, name=""):
+        print(f"Agent loaded on device: {device()}")
         self.ball_cnn = load_latest_model()
         for (i, param) in enumerate(self.ball_cnn.parameters()):
             if i > 2:
@@ -38,15 +39,26 @@ class DQN:
         self.gamma = gamma
         self.tau = tau
 
+        self.name = name
+
+        # Create lists of Q-values (at start), loss and score.
+        # Append to them at each validation step.
+        self.episodes = []
+        self.q = []
+        self.loss = []
+        self.reward = []
+
     def soft_update(self, target, source):
         for tp, sp in zip(target.parameters(), source.parameters()):
             tp.data.copy_((1 - self.tau) * tp.data + self.tau * sp.data)
 
-    def act(self, state, print_Q=False):
+    def act(self, state, save_Q=False):
         with torch.no_grad():
             state = torch.as_tensor(state, dtype=torch.float).to(device())
-            if print_Q:
-                append_to_file(f"Q values at game start: {self.model(state).cpu().numpy()[0]}\n")
+            if save_Q:
+                qs = self.model(state).cpu().numpy()[0]
+                self.q.append(qs)
+                print(f"Q-values: {qs}")
             action = torch.argmax(self.model(state)).cpu().numpy().item()
         return action
 
@@ -72,9 +84,12 @@ class DQN:
         return loss.item(), td_error
 
     def save(self):
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        model_name = f"model_{current_time}.pkl"
-        torch.save(self.model, f"gg/{model_name}")
+        # current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        model_name = f"model_{self.name}.pkl"
+        if not os.path.exists("pickles"):
+            os.makedirs("pickles")
+        with open(f"pickles/{model_name}", 'wb') as file:
+            pickle.dump(self, file)
 
 def evaluate_policy(agent, episodes=5):
     
@@ -93,7 +108,7 @@ def evaluate_policy(agent, episodes=5):
             if random.random() < eps:
                 action = env.action_space.sample()
             else:
-                action = model.act(state.unsqueeze(0), print_Q)
+                action = agent.act(state.unsqueeze(0), print_Q)
                 print("RrLl!.p"[action], end="")
                 print_Q = False
             state, reward = env.step(action)
@@ -107,7 +122,7 @@ def evaluate_policy(agent, episodes=5):
     return np.mean(returns), np.std(returns)
 
 
-def train(model, buffer, batch_size=128,
+def train(agent, buffer, batch_size=128,
         eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
 
     episodes = 0
@@ -120,10 +135,14 @@ def train(model, buffer, batch_size=128,
     while True:
         if loss_count and training_started:
             time.sleep(0.1)
-            eval_reward, _ = evaluate_policy(model, episodes=1)
-            append_to_file(f"Evaluation reward: {eval_reward}")
-            append_to_file(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {total_loss / loss_count:.6f}, Eps: {eps}\n")
-            model.save()
+            eval_reward, _ = evaluate_policy(agent, episodes=1)
+            agent.reward.append(eval_reward)
+            mean_loss = total_loss / loss_count
+            agent.loss.append(mean_loss)
+            agent.episodes.append(episodes)
+            print(f"Evaluation reward: {eval_reward}")
+            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {mean_loss:.6f}, Eps: {eps}\n")
+            agent.save()
             loss_count, total_loss = 0, 0
 
         # Run some episodes
@@ -138,7 +157,7 @@ def train(model, buffer, batch_size=128,
                 if random.random() < eps:
                     action = env.action_space.sample()
                 else:
-                    action = model.act(state.unsqueeze(0))
+                    action = agent.act(state.unsqueeze(0))
                 
                 # Step and save in buffer
                 next_state, reward = env.step(action)
@@ -148,12 +167,12 @@ def train(model, buffer, batch_size=128,
                 state = next_state
 
                 # Backprop
-                if step == BUFFER_SIZE//10:
+                if step == BUFFER_SIZE//100:
                     print("Starting backprop")
                     training_started = True
-                if step > BUFFER_SIZE//10:
+                if step > BUFFER_SIZE//100:
                     batch, weights, tree_idxs = buffer.sample(batch_size)
-                    loss, td_error = model.update(batch, weights=weights)
+                    loss, td_error = agent.update(batch, weights=weights)
                     buffer.update_priorities(tree_idxs, td_error.numpy())
                     total_loss += loss
                     loss_count += 1
@@ -184,32 +203,23 @@ def print_model_layers(model):
     for name, param in model.named_parameters():
         print(f"Layer: {name}, Requires Gradients: {param.requires_grad}")
 
-def run_train_loop(model):
+def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(model, buffer, batch_size=32, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=10)
+    train(agent, buffer, batch_size=2, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=2)
 
 if __name__ == "__main__":
     lr = 5e-7
     if len(sys.argv) > 1 and sys.argv[1] == "load":
-        # Load the model from "./gg/"
-        model = DQN(lr=lr)
-        model_directory = "gg/"
-        # Get a list of all model files in the directory
-        model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
-        # Sort the model files by timestamp (assuming the timestamp format is consistent)
-        model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-        # Check if there are any model files
-        if model_files:
-            latest_model_file = model_files[0]
-            model.model = torch.load(latest_model_file).to(device())
-            model.target_model = deepcopy(model.model).to(device())
-            model.optimizer = optim.Adam(model.model.parameters(), lr=lr)
-            print(f"Loaded {latest_model_file}...")
+        name = input("DQN agent to load: ")
+        pickle_filename = f"pickles/model_{name}.pkl"
+        with open(pickle_filename, "rb") as file:
+            agent = pickle.load(file)
     else:
         # Create a new DQN model if not loading
-        model = DQN(lr=lr)
-    print_model_layers(model.model)
-    print_model_layers(model.target_model)
-    run_train_loop(model)
+        # Ask for a name
+        name = input("Enter a name for new DQN agent: ")
+        agent = DQN(lr=lr, name=name)
+        
+    run_train_loop(agent)
 
 

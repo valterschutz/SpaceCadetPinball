@@ -34,7 +34,7 @@ def evaluate_policy(agent, episodes=None):
             state, reward = env.step(action)
             done = env.is_done()
             total_reward += reward
-            time.sleep(0.05)
+            time.sleep(0.03)
         returns.append(total_reward)
         print("")
         del env

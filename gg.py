@@ -18,7 +18,7 @@ from gamehandler import GameEnvironment
 BUFFER_SIZE = 40000
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.98, tau=0.01, lr=0.00025, name=""):
+    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025, name=""):
         print(f"Agent loaded on device: {device()}")
         self.ball_cnn = load_latest_model()
         for (i, param) in enumerate(self.ball_cnn.parameters()):

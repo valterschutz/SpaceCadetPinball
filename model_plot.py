@@ -80,6 +80,7 @@ else:
     latest_model_file = model_files[0]
 with open(latest_model_file, "rb") as file:
     agent = pickle.load(file)
+    agent.model = agent.model.to(device())
 print(f"Loaded {latest_model_file}...")
 
 Qs = evaluate_policy(agent, episodes=1)

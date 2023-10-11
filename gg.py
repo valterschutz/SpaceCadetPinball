@@ -125,7 +125,10 @@ def evaluate_policy(agent, episodes=5):
 def train(agent, buffer, batch_size=128,
         eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
 
-    episodes = 0
+    if agent.episodes:
+        episodes = agent.episodes[-1]
+    else:
+        episodes = 0
     step = 0
     total_reward = 0
     loss_count, total_loss = 0, 0
@@ -205,10 +208,10 @@ def print_model_layers(model):
 
 def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=16, eps_max=1, eps_min=0.3, decrease_eps_steps=1000000, test_every_episodes=20)
+    train(agent, buffer, batch_size=32, eps_max=1, eps_min=0.2, decrease_eps_steps=1000000, test_every_episodes=20)
 
 if __name__ == "__main__":
-    lr = 5e-7
+    lr = 5e-8
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         name = input("DQN agent to load: ")
         pickle_filename = f"pickles/model_{name}.pkl"

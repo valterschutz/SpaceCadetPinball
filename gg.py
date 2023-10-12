@@ -12,19 +12,24 @@ import pickle
 from copy import deepcopy
 from buffer import PrioritizedReplayBuffer
 from cnn import get_device as device
-from cnn import load_latest_model
+from cnn import load_latest_cnn_model
 from gamehandler import GameEnvironment
 
 BUFFER_SIZE = 40000
 
 class DQN:
     def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025, name=""):
-        print(f"Agent loaded on device: {device()}")
-        self.ball_cnn = load_latest_model()
+        # Load CNN model
+        self.ball_cnn = load_latest_cnn_model()
+
+        # TODO: check what this does
         for (i, param) in enumerate(self.ball_cnn.parameters()):
+            print(i,param)
             if i > 2:
                 break
             param.requires_grad = False
+
+        # The second part of the Q-network
         self.model = nn.Sequential(
             self.ball_cnn,
             nn.ReLU(),
@@ -48,26 +53,34 @@ class DQN:
         self.loss = []
         self.reward = []
 
-    def soft_update(self, target, source):
-        for tp, sp in zip(target.parameters(), source.parameters()):
+    def soft_update(self):
+        """Updates target model towards source model."""
+
+        for tp, sp in zip(self.target_model.parameters(), self.model.parameters()):
             tp.data.copy_((1 - self.tau) * tp.data + self.tau * sp.data)
 
     def act(self, state, save_Q=False):
+        """Calculate optimal action from a given state."""
+
         with torch.no_grad():
-            state = torch.as_tensor(state, dtype=torch.float).to(device())
+            state = torch.as_tensor(state, dtype=torch.float).to(device()) # TODO: this should ideally already be on the device as a tensor?
+            qs = self.model(state)
+            qs_np = qs.cpu().numpy()[0]
             if save_Q:
-                qs = self.model(state).cpu().numpy()[0]
-                self.q.append(qs)
-                print(f"Q-values: {qs}")
-            action = torch.argmax(self.model(state)).cpu().numpy().item()
+                self.q.append(qs_np)
+                print(f"Q-values: {qs_np}") # TODO: weird to have printing here
+            action = torch.argmax(qs).cpu().numpy().item()
         return action
 
-    def update(self, batch, weights=1):
-        state, action, reward, next_state, done = batch
+    def update(self, batch):
+        """Updates the Q-network and returns the loss (scalar) and TD error (vector) given a batch of information."""
 
-        Q_next = self.target_model(next_state).max(dim=1).values
-        Q_target = reward + self.gamma * (1 - done) * Q_next
-        Q = self.model(state)[torch.arange(len(action)), action.to(torch.long).flatten()]
+        state, action, reward, next_state, done = batch
+        n_batches = len(action)
+
+        V_next = self.target_model(next_state).max(dim=1).values
+        Q_target = reward + self.gamma * (1 - done) * V_next
+        Q = self.model(state)[torch.arange(n_batches), action.to(torch.long).flatten()] # TODO: do we really need to convert action?
 
         assert Q.shape == Q_target.shape, f"{Q.shape}, {Q_target.shape}"
 
@@ -79,43 +92,46 @@ class DQN:
         self.optimizer.step()
 
         with torch.no_grad():
-            self.soft_update(self.target_model, self.model)
+            self.soft_update()
 
         return loss.item(), td_error
 
     def save(self):
-        # current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        """Pickle the agent."""
+
         model_name = f"model_{self.name}.pkl"
         if not os.path.exists("pickles"):
             os.makedirs("pickles")
         with open(f"pickles/{model_name}", 'wb') as file:
             pickle.dump(self, file)
 
-def evaluate_policy(agent, episodes=5):
+def evaluate_policy(agent, episodes=5, is_printing=False):
+    """Evaluate the agent without training it for a certain amount of episodes."""
     
     returns = []
-    eps = 0.1
+    eps = 0.1 # TODO: should be a parameter
 
-    print(f"Evaluating policy for {episodes} episodes with eps={eps}")
+    print(f"Evaluating policy for {episodes} episodes with eps={eps}") # TODO: should not be here
 
-    for ep in range(episodes):
-        print_Q = True
+    for _ in range(episodes):
         env = GameEnvironment(600, 416)
-        done, total_reward = False, 0
         state = env.get_state()
+        done, total_reward = False, 0
         print("Actions:")
+        is_first_frame = True
         while not done:
             if random.random() < eps:
                 action = env.action_space.sample()
             else:
-                action = agent.act(state.unsqueeze(0), print_Q)
+                action = agent.act(state.unsqueeze(0), is_printing and is_first_frame)
                 print("RrLl!.p"[action], end="")
-                print_Q = False
+                is_first_frame = False
             state, reward = env.step(action)
-            done = env.is_done()
             total_reward += reward
+            done = env.is_done()
         returns.append(total_reward)
-        print("")
+        if is_printing:
+            print("")
         del env
         time.sleep(0.1)
         
@@ -124,7 +140,11 @@ def evaluate_policy(agent, episodes=5):
 
 def train(agent, buffer, batch_size=128,
         eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
+    """Train the agent ad infinitum with decreasing epsilon."""
 
+    # TODO: check this whole function
+
+    # If we are resuming a previously trained model, remember where we ended
     if agent.episodes:
         episodes = agent.episodes[-1]
     else:
@@ -138,7 +158,7 @@ def train(agent, buffer, batch_size=128,
     while True:
         if loss_count and training_started:
             time.sleep(0.1)
-            eval_reward, _ = evaluate_policy(agent, episodes=1)
+            eval_reward, _ = evaluate_policy(agent, episodes=1, is_printing=True)
             agent.reward.append(eval_reward)
             mean_loss = total_loss / loss_count
             agent.loss.append(mean_loss)
@@ -175,7 +195,7 @@ def train(agent, buffer, batch_size=128,
                     training_started = True
                 if step > BUFFER_SIZE//10:
                     batch, weights, tree_idxs = buffer.sample(batch_size)
-                    loss, td_error = agent.update(batch, weights=weights)
+                    loss, td_error = agent.update(batch)
                     buffer.update_priorities(tree_idxs, td_error.numpy())
                     total_loss += loss
                     loss_count += 1
@@ -189,7 +209,8 @@ def train(agent, buffer, batch_size=128,
             episodes += 1
 
 def append_to_file(data):
-    print(data)
+    """Write data to a file with filename equal to process ID."""
+
     pid = os.getpid()
     file_path = f"textdata/{pid}.txt"
     
@@ -203,6 +224,8 @@ def append_to_file(data):
         file.write(data)
 
 def print_model_layers(model):
+    """Print the contents of all layers in a model and whether the gradients are computed."""
+
     for name, param in model.named_parameters():
         print(f"Layer: {name}, Requires Gradients: {param.requires_grad}")
 

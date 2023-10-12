@@ -201,16 +201,18 @@ def train_model(model, num_epochs, batch_size, lr):
     print("Training finished!")
     return model
 
-def load_latest_model():
+def load_latest_cnn_model():
+    """Load the latest available CNN model from the directory 'cnn_models'."""
+
     # Define the directory where your model files are stored
-    model_directory = 'models'  # Replace with the actual directory path
+    model_directory = 'cnn_models'
 
     # List all model files in the directory
     model_files = glob.glob(os.path.join(model_directory, 'model_*.pth'))
 
     # Ensure that there are model files to load
     if not model_files:
-        return None
+        raise Exception(f"No models in directory {model_directory}")
 
     # Sort the model files by timestamp (modification time) in descending order
     model_files.sort(key=os.path.getmtime, reverse=True)
@@ -223,15 +225,16 @@ def load_latest_model():
     model = BallDetectionCNN()
     model.load_state_dict(torch.load(latest_model_path, map_location=device))
     
-    # Load to GPU
+    # Load to device
     model.to(device)
+
     return model
 
 def save_model(model):
     # Get the current date and time as a string
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     # Define a file path with the timestamp
-    model_path = f'models/model_{current_datetime}.pth'
+    model_path = f'cnn_models/model_{current_datetime}.pth'
     print(f"Saving {model_path}...")
     torch.save(model.state_dict(), model_path)
 

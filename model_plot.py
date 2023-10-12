@@ -9,7 +9,7 @@ import random
 import pickle
 import matplotlib.pyplot as plt
 from copy import deepcopy
-from cnn import get_device as device
+from cnn import device
 from gamehandler import GameEnvironment
 from gg import DQN
 
@@ -40,7 +40,7 @@ def plot_q_values(q_matrix, name):
 
 def get_qs(agent, state):
     with torch.no_grad():
-        state = torch.as_tensor(state, dtype=torch.float).to(device())
+        state = torch.as_tensor(state, dtype=torch.float).to(device)
         return agent.model(state.unsqueeze(0)).cpu().numpy()[0]
 
 def evaluate_policy(agent, episodes=None):
@@ -71,19 +71,24 @@ def evaluate_policy(agent, episodes=None):
     return np.array(Qs)
 
 
-model_directory = "pickles"
-model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
-model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-if len(sys.argv) > 1:
-    latest_model_file = sys.argv[1]
-else:
-    latest_model_file = model_files[0]
-with open(latest_model_file, "rb") as file:
-    agent = pickle.load(file)
-    agent.model = agent.model.to(device())
-print(f"Loaded {latest_model_file}...")
-
-Qs = evaluate_policy(agent, episodes=1)
-name = latest_model_file.split("/")[-1].split(".")[0].split("_")[-1]
-plot_q_values(Qs, name)
-print("Saved nice pictures...")
+# model_directory = "pickles"
+# model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
+# model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+# if len(sys.argv) > 1:
+#     latest_model_file = sys.argv[1]
+# else:
+#     latest_model_file = model_files[0]
+# with open(latest_model_file, "rb") as file:
+#     agent = pickle.load(file)
+#     agent.model = agent.model.to(device)
+# print(f"Loaded {latest_model_file}...")
+#name = latest_model_file.split("/")[-1].split(".")[0].split("_")[-1]
+if __name__ == "__main__":
+    name = input("DQN agent to eval: ")
+    pickle_filename = f"pickles/model_{name}.pkl"
+    with open(pickle_filename, "rb") as file:
+        agent = pickle.load(file)
+    agent.model = agent.model.to(device)
+    Qs = evaluate_policy(agent, episodes=1)
+    plot_q_values(Qs, name)
+    print("Saved nice pictures...")

@@ -559,7 +559,7 @@ int TPinballTable::Message(MessageCode code, float value)
 		loader::play_sound(SoundIndex2, nullptr, "TPinballTable3");
 		pb::MissTextBox->Clear();
 		pb::InfoTextBox->Display(pb::get_rc_string(Msg::STRING135), -1.0);
-		EndGameTimeoutTimer = timer::set(3.0, this, EndGame_timeout);
+		EndGameTimeoutTimer = timer::set(0.0, this, EndGame_timeout);
 		break;
 	case MessageCode::Reset:
 		for (auto component : ComponentList)

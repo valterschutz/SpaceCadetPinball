@@ -85,7 +85,8 @@ class GameEnvironment:
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
-        self.extra_reward = -30 if action in "RrLl!." else 0
+        self.extra_additive_reward = 0 if action in "RrLl!." else 0
+        self.extra_multiplicative_reward = 1.2 if action in "p" else 1
         if action == self.prev_action:
             action = "p"
         self.prev_action = action
@@ -97,11 +98,10 @@ class GameEnvironment:
             self.same_reward_counter += 1
         else:
             self.same_reward_counter = 0
-        reward = torch.tensor(reward + self.extra_reward, dtype=torch.int32)
-        self.prev_score[:] = self.score[:]
-        #reward = torch.log(reward + 1)
-        reward = reward/10000 # Rainbow DQN clips rewards at +-1
+        reward = min((self.extra_multiplicative_reward*reward + self.extra_additive_reward)/20000, 1)
+        reward = torch.tensor(reward, dtype=torch.float32)
         reward.to(get_device())
+        self.prev_score[:] = self.score[:]
         return reward
 
     def get_state(self):

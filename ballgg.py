@@ -11,7 +11,7 @@ import torch.optim as optim
 import pickle
 from copy import deepcopy
 from ballbuffer import PrioritizedReplayBuffer
-from cnn import get_device as device
+from cnn import device
 from ballhandler import GameEnvironment
 
 BUFFER_SIZE = 4000000
@@ -28,8 +28,8 @@ class DQN:
             nn.Linear(128, 128),
             nn.ReLU(),
            nn.Linear(128, action_size)
-        ).to(device())
-        self.target_model = deepcopy(self.model).to(device())
+        ).to(device)
+        self.target_model = deepcopy(self.model).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.MSELoss()
 
@@ -57,14 +57,14 @@ class DQN:
         for tp, sp in zip(self.target_model.parameters(), self.model.parameters()):
             tp.data.copy_((1 - self.tau) * tp.data + self.tau * sp.data)
 
-    def act(self, state, eps, save_Q=False):
+    def act(self, env, state, eps, save_Q=False):
         """Calculate optimal action from a given state."""
 
         with torch.no_grad():
             if random.random() < eps:
                 action = env.action_space.sample()
             else:
-                state = torch.as_tensor(state, dtype=torch.float).to(device()) # TODO: this should ideally already be on the device as a tensor?
+                state = torch.as_tensor(state, dtype=torch.float).to(device) # TODO: this should ideally already be on the device as a tensor?
                 qs = self.model(state)
                 qs_np = qs.cpu().numpy()[0]
                 if save_Q:
@@ -109,10 +109,11 @@ class DQN:
     def update_action_state(self, action):
         """Updates one of the three instance variables describing the state of the flippers and plunger"""
 
+        action = "RrLl!.p"[action]
         if action == 'l':
             self.lflipper_state = -1
         elif action == 'L':
-            self.lflipper_state = -1
+            self.lflipper_state = 1
         elif action == 'r':
             self.rflipper_state = -1
         elif action == 'R':
@@ -139,7 +140,7 @@ class DQN:
         return next_state, reward
     
     def augment_state(self, state):
-        action_state_tensor = torch.tensor([self.lflipper_state, self.rflipper_state, self.plunger_state], dtype=torch.float32)
+        action_state_tensor = torch.tensor([self.lflipper_state, self.rflipper_state, self.plunger_state], dtype=torch.float32).to(device)
         return torch.cat((state, action_state_tensor), dim=0)
 
 
@@ -158,7 +159,7 @@ def evaluate_policy(agent, episodes=5, is_printing=False):
         print("Actions:")
         is_first_frame = True
         while not done:
-            action = agent.act(state.unsqueeze(0), eps, is_printing and is_first_frame)
+            action = agent.act(env, state.unsqueeze(0), eps, is_printing and is_first_frame)
             print("RrLl!.p"[action], end="")
             is_first_frame = False
             state, reward = agent.step(env, action)
@@ -213,7 +214,7 @@ def train(agent, buffer, batch_size=128,
 
                 # Action
                 eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
-                action = agent.act(state.unsqueeze(0), eps)
+                action = agent.act(env, state.unsqueeze(0), eps)
                 
                 # Step and save in buffer
                 next_state, reward = agent.step(env, action)

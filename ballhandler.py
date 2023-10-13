@@ -107,8 +107,8 @@ class GameEnvironment:
     def get_state(self):
         state = self.ball_info.astype(np.float32)
         state = state[[0,1,4,5]]
-        state[1] = state[1] / 10
-        state[2] = state[2] / 20
+        state[0] = state[0] / 10
+        state[1] = state[1] / 20
         state = torch.from_numpy(state)
         state = state.to(get_device())
         return state

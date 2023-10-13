@@ -21,7 +21,7 @@ class DQN:
 
         # The second part of the Q-network
         self.model = nn.Sequential(
-                nn.Linear(4, 128),
+                nn.Linear(7, 128),
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
@@ -45,23 +45,32 @@ class DQN:
         self.loss = []
         self.reward = []
 
+        # Keep track of flipper and plunger states
+        # -1 means down, 1 means up
+        self.rflipper_state = -1
+        self.lflipper_state = -1
+        self.plunger_state = 1
+
     def soft_update(self):
         """Updates target model towards source model."""
 
         for tp, sp in zip(self.target_model.parameters(), self.model.parameters()):
             tp.data.copy_((1 - self.tau) * tp.data + self.tau * sp.data)
 
-    def act(self, state, save_Q=False):
+    def act(self, state, eps, save_Q=False):
         """Calculate optimal action from a given state."""
 
         with torch.no_grad():
-            state = torch.as_tensor(state, dtype=torch.float).to(device()) # TODO: this should ideally already be on the device as a tensor?
-            qs = self.model(state)
-            qs_np = qs.cpu().numpy()[0]
-            if save_Q:
-                self.q.append(qs_np)
-                print(f"Q-values: {qs_np}") # TODO: weird to have printing here
-            action = torch.argmax(qs).cpu().numpy().item()
+            if random.random() < eps:
+                action = env.action_space.sample()
+            else:
+                state = torch.as_tensor(state, dtype=torch.float).to(device()) # TODO: this should ideally already be on the device as a tensor?
+                qs = self.model(state)
+                qs_np = qs.cpu().numpy()[0]
+                if save_Q:
+                    self.q.append(qs_np)
+                    print(f"Q-values: {qs_np}") # TODO: weird to have printing here
+                action = torch.argmax(qs).cpu().numpy().item()
         return action
 
     def update(self, batch):
@@ -97,6 +106,43 @@ class DQN:
         with open(f"pickles/{model_name}", 'wb') as file:
             pickle.dump(self, file)
 
+    def update_action_state(self, action):
+        """Updates one of the three instance variables describing the state of the flippers and plunger"""
+
+        if action == 'l':
+            self.lflipper_state = -1
+        elif action == 'L':
+            self.lflipper_state = -1
+        elif action == 'r':
+            self.rflipper_state = -1
+        elif action == 'R':
+            self.rflipper_state = 1
+        elif action == '!':
+            self.plunger_state = -1
+        elif action == '.':
+            self.plunger_state = 1
+
+    def reset_action_state(self):
+        self.lflipper_state = -1
+        self.rflipper_state = -1
+        self.plunger_state = 1
+
+    def get_state(self, env):
+        state = env.get_state()
+        state = self.augment_state(state)
+        return state
+    
+    def step(self, env, action):
+        self.update_action_state(action)
+        next_state, reward = env.step(action)
+        next_state = self.augment_state(next_state)
+        return next_state, reward
+    
+    def augment_state(self, state):
+        action_state_tensor = torch.tensor([self.lflipper_state, self.rflipper_state, self.plunger_state], dtype=torch.float32)
+        return torch.cat((state, action_state_tensor), dim=0)
+
+
 def evaluate_policy(agent, episodes=5, is_printing=False):
     """Evaluate the agent without training it for a certain amount of episodes."""
     
@@ -107,18 +153,15 @@ def evaluate_policy(agent, episodes=5, is_printing=False):
 
     for _ in range(episodes):
         env = GameEnvironment(600, 416)
-        state = env.get_state()
+        state = agent.get_state(env)
         done, total_reward = False, 0
         print("Actions:")
         is_first_frame = True
         while not done:
-            if random.random() < eps:
-                action = env.action_space.sample()
-            else:
-                action = agent.act(state.unsqueeze(0), is_printing and is_first_frame)
-                print("RrLl!.p"[action], end="")
-                is_first_frame = False
-            state, reward = env.step(action)
+            action = agent.act(state.unsqueeze(0), eps, is_printing and is_first_frame)
+            print("RrLl!.p"[action], end="")
+            is_first_frame = False
+            state, reward = agent.step(env, action)
             total_reward += reward
             done = env.is_done()
         returns.append(total_reward)
@@ -164,18 +207,16 @@ def train(agent, buffer, batch_size=128,
         for _ in range(test_every_episodes):
             total_reward = 0
             env = GameEnvironment(600, 416)
-            state = env.get_state()
+            agent.reset_action_state()
+            state = agent.get_state(env)
             while not done:
 
                 # Action
                 eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
-                if random.random() < eps:
-                    action = env.action_space.sample()
-                else:
-                    action = agent.act(state.unsqueeze(0))
+                action = agent.act(state.unsqueeze(0), eps)
                 
                 # Step and save in buffer
-                next_state, reward = env.step(action)
+                next_state, reward = agent.step(env, action)
                 total_reward += reward
                 done = env.is_done()
                 buffer.add((state, action, reward, next_state, int(done)))
@@ -226,7 +267,7 @@ def run_train_loop(agent):
     train(agent, buffer, batch_size=32, eps_max=1, eps_min=0.2, decrease_eps_steps=1000000, test_every_episodes=20)
 
 if __name__ == "__main__":
-    lr = 5e-7
+    lr = 5e-6
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         name = input("DQN agent to load: ")
         pickle_filename = f"pickles/model_{name}.pkl"
@@ -238,7 +279,7 @@ if __name__ == "__main__":
         name = input("Enter a name for new DQN agent: ")
         agent = DQN(lr=lr, name=name)
     agent.optimizer = optim.Adam(agent.model.parameters(), lr=lr)
-    agent.tau = 0.001
+    agent.tau = 0.01
         
     run_train_loop(agent)
 

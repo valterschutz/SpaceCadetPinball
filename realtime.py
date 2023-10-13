@@ -2,6 +2,12 @@ import numpy as np
 from gamehandler import GameEnvironment
 from gg import DQN
 import pygame
+import sys
+import glob
+import os
+import pickle
+import time
+from cnn import device
 
 # Replace this with your actual matrix
 """
@@ -113,6 +119,6 @@ else:
     latest_model_file = model_files[0]
 with open(latest_model_file, "rb") as file:
     agent = pickle.load(file)
-    agent.model = agent.model.to(device())
+    agent.model = agent.model.to(device)
 print(f"Loaded {latest_model_file}...")
 

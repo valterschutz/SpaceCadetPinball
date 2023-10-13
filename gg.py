@@ -149,9 +149,10 @@ def train(agent, buffer, batch_size=128,
         episodes = agent.episodes[-1]
     else:
         episodes = 0
-    step = 0
-    total_reward = 0
-    loss_count, total_loss = 0, 0
+    step = 0  # How many states we have seen so far
+    total_reward = 0  # Total reward encountered in a single episode
+    # The total loss encountered during a single episode and how many times it has been updated
+    loss_count, total_loss = 0, 0 
 
     done = False
     training_started = False

@@ -15,10 +15,10 @@ class PrioritizedReplayBuffer:
         self.max_priority = eps  # priority for new samples, init as eps
 
         # transition: state, action, reward, next_state, done
-        self.state = torch.empty(buffer_size, 4, dtype=torch.float32)
+        self.state = torch.empty(buffer_size, 7, dtype=torch.float32)
         self.action = torch.empty(buffer_size, action_size, dtype=torch.int)
         self.reward = torch.empty(buffer_size, dtype=torch.float32)
-        self.next_state = torch.empty(buffer_size, 4, dtype=torch.float32)
+        self.next_state = torch.empty(buffer_size, 7, dtype=torch.float32)
         self.done = torch.empty(buffer_size, dtype=torch.int)
 
         self.count = 0

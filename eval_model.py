@@ -2,7 +2,7 @@ import time
 import itertools
 import random
 from gamehandler import GameEnvironment
-from gg import DQN
+from ballgg import DQN
 from cnn import device
 import pickle
 

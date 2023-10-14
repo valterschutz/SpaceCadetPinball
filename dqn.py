@@ -56,6 +56,7 @@ class DQN:
         self.saved_Qs = []
         self.saved_losses = []
         self.saved_rewards = []
+        self.saved_eps = []
 
     def init_optimizer(self):
         return optim.Adam(self.model.parameters(), lr=self.lr)
@@ -117,10 +118,11 @@ class DQN:
         torch.save(self.model.state_dict(), f"saves/{model_filename}")
         np.savez(
             f"saves/{data_filename}",
-             saved_episodes=self.saved_episodes,
-             saved_rewards=self.saved_rewards,
-             saved_losses=self.saved_losses,
-             saved_Qs=self.saved_Qs
+            saved_episodes=self.saved_episodes,
+            saved_rewards=self.saved_rewards,
+            saved_losses=self.saved_losses,
+            saved_Qs=self.saved_Qs,
+            saved_eps=self.saved_eps 
         )
 
     def load(self):
@@ -135,13 +137,15 @@ class DQN:
         self.saved_rewards = data["saved_rewards"]
         self.saved_losses = data["saved_losses"]
         self.saved_Qs = data["saved_Qs"]
+        self.saved_eps = data["saved_eps"]
 
 
-    def append_data(self, episode, episode_reward, mean_loss, initial_Q):
+    def append_data(self, episode, episode_reward, mean_loss, initial_Q, eps):
         self.saved_episodes.append(episode)
         self.saved_rewards.append(episode_reward)
         self.saved_losses.append(mean_loss)
         self.saved_Qs.append(initial_Q)
+        self.saved_eps.append(eps)
 
     def eps_decay(self):
         """Decays epsilon corresponding to one episode."""

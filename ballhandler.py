@@ -76,11 +76,15 @@ class GameEnvironment:
             self.sem[:] = self.init_sem[:] # Tell C to proceed
         
     def is_done(self):
-        if self.sem[0] < 0 or self.same_reward_counter > 500 or self.ball_info[1]>14.0: #bumper bug?
-            if self.same_reward_counter > 500:
-                print("Bumper bug...", end=" ")
+        if self.sem[0] < 0 or self.ball_info[1]>14.0:
             return True
         return False
+
+    def is_stuck(self):
+        if self.same_reward_counter > 500:
+            return True
+        return False
+
 
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
@@ -126,7 +130,7 @@ class GameEnvironment:
             self.sem[:] = self.init_sem[:]
         state, reward = self.get_state(), self.get_reward()
         self.frame_id += 4
-        return state, reward
+        return state, reward, self.is_done(), self.is_stuck()
 
 
 def start_game():

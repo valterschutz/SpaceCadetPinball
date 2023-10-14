@@ -132,7 +132,7 @@ class GameEnvironment:
     def get_state(self):
         """Get the complete state, including ball position/velocity and flipper/plunger toggle values (7 values)."""
         action_state_tensor = torch.tensor([self.left_flipper_up, self.right_flipper_up, self.plunger_down], dtype=torch.float32).to(device)
-        return torch.cat((self.get_ball_state(), action_state_tensor), dim=0)
+        return torch.cat((self.get_ball_state(), action_state_tensor), dim=0).to(device)
 
     def update_toggles(self, action):
         if action == 0:

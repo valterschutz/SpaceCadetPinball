@@ -1,11 +1,10 @@
 import pdb
-import time
+import numpy as np
 import os
 import torch
 import random
 import torch.nn as nn
 import torch.optim as optim
-import pickle
 from copy import deepcopy
 from ballbuffer import PrioritizedReplayBuffer
 from cnn import device
@@ -27,17 +26,9 @@ class DQN:
             nn.ReLU(),
            nn.Linear(128, action_size)
         ).to(device)
+        self.model.eval()
 
-        self.env_fun = env_fun # Called each time to start new episode
-
-        self.target_model = deepcopy(self.model).to(device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.criterion = nn.MSELoss()
-
-        # Prioritized replay buffer
-        self.buffer = PrioritizedReplayBuffer(buffer_size)
-        self.batch_size = batch_size # Batch size for replay training
-
+        self.lr = lr
         self.gamma = gamma
         self.tau = tau
         self.eps_min = eps_min
@@ -46,14 +37,28 @@ class DQN:
         self.eps = eps_max
         self.eps_eval = eps_eval
 
+        self.env_fun = env_fun # Called each time to start new episode
+
+        self.target_model = deepcopy(self.model).to(device)
+        self.target_model.eval()
+        self.optimizer = self.init_optimizer()
+        self.criterion = nn.MSELoss()
+
+        # Prioritized replay buffer
+        self.buffer = PrioritizedReplayBuffer(buffer_size)
+        self.batch_size = batch_size # Batch size for replay training
+
         self.name = name
 
         # Create lists of Q-values (at start), loss and score.
         # Append to them at each validation step.
-        self.episodes = []
-        self.q = []
-        self.loss = []
-        self.reward = []
+        self.saved_episodes = []
+        self.saved_Qs = []
+        self.saved_losses = []
+        self.saved_rewards = []
+
+    def init_optimizer(self):
+        return optim.Adam(self.model.parameters(), lr=self.lr)
 
     def soft_update(self):
         """Updates target model towards source model."""
@@ -78,8 +83,8 @@ class DQN:
 
     def update(self, batch):
         """Updates the Q-network and returns the loss (scalar) and TD error (vector) given a batch of information."""
+        self.model.train()
 
-        pdb.set_trace()
         state, action, reward, next_state, done = batch
 
         V_next = self.target_model(next_state).max(dim=1).values
@@ -98,29 +103,47 @@ class DQN:
         with torch.no_grad():
             self.soft_update()
 
+        self.model.eval()
+
         return loss.item(), td_error
 
     def save(self):
-        """Pickle the agent."""
+        """Save the model and data in the agent."""
 
-        model_name = f"model_{self.name}.pkl"
-        if not os.path.exists("pickles"):
-            os.makedirs("pickles")
-        with open(f"pickles/{model_name}", 'wb') as file:
-            pickle.dump(self, file)
+        model_filename = f"{self.name}.pth"
+        data_filename = f"{self.name}.npz"
+        if not os.path.exists("saves"):
+            os.makedirs("saves")
+        torch.save(self.model.state_dict(), f"saves/{model_filename}")
+        np.savez(
+            f"saves/{data_filename}",
+             saved_episodes=self.saved_episodes,
+             saved_rewards=self.saved_rewards,
+             saved_losses=self.saved_losses,
+             saved_Qs=self.saved_Qs
+        )
 
-    # def get_state(self, env):
-    #     state = env.get_state()
-    #     state = self.augment_state(state)
-    #     return state
-    
-    # def step(self, env, action):
-    #     """Takes one step in environment and returns the next state, reward, and whether it terminated or stuck."""
-    #     next_state, reward, is_done, is_stuck = env.step(action)
-    #     return next_state, reward, is_done, is_stuck
-    
+    def load(self):
+        """Load the model and saved data."""
 
-    def epsilon_decay(self):
+        model_filename = f"{self.name}.pth"
+        data_filename = f"{self.name}.npz"
+        self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
+        self.optimizer = self.init_optimizer()
+        data = np.load(f"saves/{data_filename}")
+        self.saved_episodes = data["saved_episodes"]
+        self.saved_rewards = data["saved_rewards"]
+        self.saved_losses = data["saved_losses"]
+        self.saved_Qs = data["saved_Qs"]
+
+
+    def append_data(self, episode, episode_reward, mean_loss, initial_Q):
+        self.saved_episodes.append(episode)
+        self.saved_rewards.append(episode_reward)
+        self.saved_losses.append(mean_loss)
+        self.saved_Qs.append(initial_Q)
+
+    def eps_decay(self):
         """Decays epsilon corresponding to one episode."""
         self.eps = max(self.eps_min, self.eps-self.eps_decay_per_episode)
 
@@ -130,10 +153,11 @@ class DQN:
 
     
     def play_one_episode(self, mode, eps=None):
-        """Play one complete episode, either in training mode or evaluation mode, optionally with a custom epsilon. Return the total episode reward, loss and whether the episode finished 'normally'."""
+        """Play one complete episode, either in training mode or evaluation mode, optionally with a custom epsilon. Return the total episode reward, loss, whether the episode finished 'normally' and the Q-values found at the start."""
         # mode is either "train" or "eval"
         env = self.env_fun()
         state = env.get_state()
+        initial_Q = self.model(state).detach().cpu().numpy()
         # choose epsilon depending on mode
         if eps is None:
             eps = self.eps if mode == "train" else self.eps_eval
@@ -160,4 +184,4 @@ class DQN:
 
         # Remove environment and return
         del env
-        return episode_reward, episode_loss, (not is_stuck)
+        return episode_reward, episode_loss, (not is_stuck), initial_Q

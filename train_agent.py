@@ -1,112 +1,88 @@
+import argparse
+import itertools
+from dqn import DQN
 
-def evaluate_policy(agent, eps):
-    """Evaluate the agent without training it for one episode."""
-    
-    print(f"Evaluating policy for one episode with eps={eps}") # TODO: should not be here
-
-    env = GameEnvironment(600, 416)
-    agent.reset_action_state()
-    state = agent.get_state(env)
-    qs = agent.model(state)
-    qs_np = qs.cpu().numpy()[0]
-    print(f"Q-values: {qs_np}") # TODO: weird to have printing here
-    done, episode_reward = False, 0
-    print("Actions:")
-    while not done:
-        action = agent.act(env, state.unsqueeze(0), eps)
-        print("RrLl!.p"[action], end="")
-        state, reward = agent.step(env, action)
-        episode_reward += reward
-        done = env.is_done()
-    print("")
-    del env
-    time.sleep(0.1)
-        
-    return episode_reward, qs_np
-
-
-def train(agent, buffer, batch_size=128,
-        eps_max=1, eps_min=0.0, decrease_eps_steps=1000000, test_every_episodes=50):
-    """Train the agent ad infinitum with decreasing epsilon."""
-
-    # TODO: check this whole function
+def train_loop(agent, test_every_n_episodes, save_every_m_episodes):
+    """Train the agent ad infinitum with decreasing epsilon. Test it every now and then."""
 
     # If we are resuming a previously trained model, remember where we ended
-    if agent.episodes:
-        episodes = agent.episodes[-1]
+    if len(agent.saved_episodes) > 0:
+        episodes_so_far = agent.episodes[-1]
     else:
-        episodes = 0
-    step = 0 # How many states we have seen in total across all episodes
-    eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
-    acc_reward, acc_loss = 0, 0 # Accumulated reward and loss over several episodes
-    counter = 0 # Keeps track of how many episodes the above variables correspond to
+        episodes_so_far = 0
 
-    done = False
-    training_started = False # Only start training when buffer is sufficiently full
-    while True:
-        if counter and training_started:
-            time.sleep(0.1)
-            eval_episode_reward, eval_qs = evaluate_policy(agent, eps)
-            agent.episode.append(episodes)
-            agent.q.append(eval_qs)
-            agent.reward.append(eval_episode_reward)
-            mean_loss = acc_loss / counter
-            agent.loss.append(mean_loss)
-            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {mean_loss:.6f}, Eps: {eps}\n")
+    # Keep track of accumulated loss over the past training episodes
+    # and reset it when evaluating the model
+    acc_loss = 0
+    for episode in itertools.count(start=episodes_so_far):
+        if episode != 0 and episode % test_every_n_episodes == 0:
+            mean_loss = acc_loss/test_every_n_episodes
+            print(f"Summary for episode {episode-test_every_n_episodes+1}-{episode-1}:")
+            print(f"  Average loss: {mean_loss}")
+            print(f"  Epsilon: {agent.eps}")
+            episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="eval")
+            print(f"Validation, episode {episode}:")
+            print(f"  Q: {initial_Q}")
+            print(f"  Reward: {episode_reward}")
+            print(f"  Epsilon: {agent.eps_eval}")
+            agent.append_data(episode, episode_reward, mean_loss, initial_Q)
+        else:
+            episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="train")
+            acc_loss += episode_loss
+        if episode != 0 and episode % save_every_m_episodes == 0:
+            print("Saving model and data...", end="")
             agent.save()
-            counter, acc_loss = 0, 0
-
-        # Run some episodes
-        for _ in range(test_every_episodes):
-            agent.play_one_episode()
-
-            # Episode finished
-            done = False
-            del env
-            time.sleep(0.1)
-            print(f"   Episode {episodes} done... Total reward = {acc_reward:.3f}")
-            episodes += 1
-
-def append_to_file(data):
-    """Write data to a file with filename equal to process ID."""
-
-    pid = os.getpid()
-    file_path = f"textdata/{pid}.txt"
-    
-    # Check if the file exists
-    if not os.path.exists(file_path):
-        # Create the file if it doesn't exist
-        with open(file_path, 'w'):
-            pass  # This will create an empty file
-    
-    with open(file_path, "a") as file:
-        file.write(data)
-
-def print_model_layers(model):
-    """Print the contents of all layers in a model and whether the gradients are computed."""
-
-    for name, param in model.named_parameters():
-        print(f"Layer: {name}, Requires Gradients: {param.requires_grad}")
-
-def run_train_loop(agent):
-    buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=128, eps_max=1, eps_min=0.5, decrease_eps_steps=1000000, test_every_episodes=20)
+            print("done")
+        agent.eps_decay()
 
 if __name__ == "__main__":
-    lr = 1e-6
-    if len(sys.argv) > 1 and sys.argv[1] == "load":
-        name = input("DQN agent to load: ")
-        pickle_filename = f"pickles/model_{name}.pkl"
-        with open(pickle_filename, "rb") as file:
-            agent = pickle.load(file)
+    parser = argparse.ArgumentParser(description="Train a RL agent to play pinball")
+    parser.add_argument("mode", help="Whether to 'load' an old model or to create a 'new' model")
+    parser.add_argument("name", help="Name of model")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
+    parser.add_argument("--tau", type=float, default=0.01, help="Target model update rate")
+    parser.add_argument("--lr", type=float, default=1e-6, help="Learning rate")
+    parser.add_argument("--eps_min", type=float, default=0.2, help="Minimum allowed epsilon")
+    parser.add_argument("--eps_max", type=float, default=1, help="Maximum allowed epsilon")
+    parser.add_argument("--eps_eval", type=float, default=0.1, help="Epsilon to use during evaluation of policy")
+    parser.add_argument("--eps_decay_per_episode", type=float, default=1e-4, help="How much to decay epsilon by each episode")
+    parser.add_argument("--buffer_size", type=int, default=4_000_000, help="Size of replay buffer")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size to use during training on replay buffer")
+    parser.add_argument("--test_every_n_episodes", type=int, default=50, help="How many episodes to wait before evaluating the model again")
+    parser.add_argument("--save_every_m_episodes", type=int, default=50, help="How many episodes to wait before pickleing the model again")
+    args = parser.parse_args()
+    mode = args.mode
+    name = args.name
+    gamma = args.gamma
+    tau = args.tau
+    lr = args.lr
+    eps_min = args.eps_min
+    eps_max = args.eps_max
+    eps_eval = args.eps_eval
+    eps_decay_per_episode = args.eps_decay_per_episode
+    buffer_size = args.buffer_size
+    batch_size = args.batch_size
+    test_every_n_episodes = args.test_every_n_episodes
+    save_every_m_episodes = args.save_every_m_episodes
+
+    agent = DQN(
+        gamma=gamma,
+        tau=tau,
+        lr=lr,
+        eps_min=eps_min,
+        eps_max=eps_max,
+        eps_eval=eps_eval,
+        eps_decay_per_episode=eps_decay_per_episode,
+        buffer_size=buffer_size,
+        batch_size=batch_size,
+        name=name
+    )
+
+    if mode == "load":
+        agent.load()
+    elif mode == "new":
+        pass
     else:
-        # Create a new DQN model if not loading
-        # Ask for a name
-        name = input("Enter a name for new DQN agent: ")
-        agent = DQN(lr=lr, name=name, gamma=0.995)
-    agent.optimizer = optim.Adam(agent.model.parameters(), lr=lr)
-    agent.tau = 0.05
-        
-    run_train_loop(agent)
+        raise Exception("Did not receive a valid mode")
 
-
+    train_loop(agent, test_every_n_episodes, save_every_m_episodes)

@@ -1,12 +1,10 @@
 import time
 import itertools
 import random
-from gamehandler import GameEnvironment
-from gg import DQN
+from ballhandler import GameEnvironment
+from dqn import DQN
 from cnn import device
 import pickle
-
-BUFFER_SIZE = 40000
 
 def eval_agent(agent, episodes=None):
     # Loop forever if no episodes given

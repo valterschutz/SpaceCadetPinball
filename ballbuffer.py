@@ -5,7 +5,7 @@ from tree import SumTree
 from cnn import get_device as device
 
 class PrioritizedReplayBuffer:
-    def __init__(self, action_size, buffer_size, eps=1e-2, alpha=0.5, beta=0.5):
+    def __init__(self, buffer_size, eps=1e-2, alpha=0.5, beta=0.5):
         self.tree = SumTree(size=buffer_size)
 
         # PER params
@@ -16,7 +16,7 @@ class PrioritizedReplayBuffer:
 
         # transition: state, action, reward, next_state, done
         self.state = torch.empty(buffer_size, 7, dtype=torch.float32)
-        self.action = torch.empty(buffer_size, action_size, dtype=torch.int)
+        self.action = torch.empty(buffer_size, dtype=torch.int)
         self.reward = torch.empty(buffer_size, dtype=torch.float32)
         self.next_state = torch.empty(buffer_size, 7, dtype=torch.float32)
         self.done = torch.empty(buffer_size, dtype=torch.int)

@@ -1,3 +1,5 @@
+import pdb
+import time
 import os
 import torch
 import random
@@ -33,7 +35,7 @@ class DQN:
         self.criterion = nn.MSELoss()
 
         # Prioritized replay buffer
-        self.buffer = PrioritizedReplayBuffer(action_size, buffer_size)
+        self.buffer = PrioritizedReplayBuffer(buffer_size)
         self.batch_size = batch_size # Batch size for replay training
 
         self.gamma = gamma
@@ -52,12 +54,6 @@ class DQN:
         self.q = []
         self.loss = []
         self.reward = []
-
-        # Keep track of flipper and plunger states
-        # -1 means down, 1 means up
-        self.rflipper_state = -1
-        self.lflipper_state = -1
-        self.plunger_state = 1
 
     def soft_update(self):
         """Updates target model towards source model."""
@@ -83,12 +79,12 @@ class DQN:
     def update(self, batch):
         """Updates the Q-network and returns the loss (scalar) and TD error (vector) given a batch of information."""
 
+        pdb.set_trace()
         state, action, reward, next_state, done = batch
-        n_batches = len(action)
 
         V_next = self.target_model(next_state).max(dim=1).values
         Q_target = reward + self.gamma * (1 - done) * V_next
-        Q = self.model(state)[torch.arange(n_batches), action.to(torch.long).flatten()] # TODO: do we really need to convert action?
+        Q = torch.gather(self.model(state), 1, action.to(torch.int64).unsqueeze(1)).squeeze()
 
         assert Q.shape == Q_target.shape, f"{Q.shape}, {Q_target.shape}"
 
@@ -113,43 +109,16 @@ class DQN:
         with open(f"pickles/{model_name}", 'wb') as file:
             pickle.dump(self, file)
 
-    def update_action_state(self, action):
-        """Updates one of the three instance variables describing the state of the flippers and plunger"""
-
-        action = "RrLl!.p"[action]
-        if action == 'l':
-            self.lflipper_state = -1
-        elif action == 'L':
-            self.lflipper_state = 1
-        elif action == 'r':
-            self.rflipper_state = -1
-        elif action == 'R':
-            self.rflipper_state = 1
-        elif action == '!':
-            self.plunger_state = -1
-        elif action == '.':
-            self.plunger_state = 1
-
-    def reset_action_state(self):
-        self.lflipper_state = -1
-        self.rflipper_state = -1
-        self.plunger_state = 1
-
-    def get_state(self, env):
-        state = env.get_state()
-        state = self.augment_state(state)
-        return state
+    # def get_state(self, env):
+    #     state = env.get_state()
+    #     state = self.augment_state(state)
+    #     return state
     
-    def step(self, env, action):
-        """Takes one step in environment and returns the next state, reward, and whether it terminated or stuck."""
-        self.update_action_state(action)
-        next_state, reward, is_done, is_stuck = env.step(action)
-        next_state = self.augment_state(next_state)
-        return next_state, reward, is_done, is_stuck
+    # def step(self, env, action):
+    #     """Takes one step in environment and returns the next state, reward, and whether it terminated or stuck."""
+    #     next_state, reward, is_done, is_stuck = env.step(action)
+    #     return next_state, reward, is_done, is_stuck
     
-    def augment_state(self, state):
-        action_state_tensor = torch.tensor([self.lflipper_state, self.rflipper_state, self.plunger_state], dtype=torch.float32).to(device)
-        return torch.cat((state, action_state_tensor), dim=0)
 
     def epsilon_decay(self):
         """Decays epsilon corresponding to one episode."""
@@ -164,8 +133,7 @@ class DQN:
         """Play one complete episode, either in training mode or evaluation mode, optionally with a custom epsilon. Return the total episode reward, loss and whether the episode finished 'normally'."""
         # mode is either "train" or "eval"
         env = self.env_fun()
-        self.reset_action_state()
-        state = self.get_state(env)
+        state = env.get_state()
         # choose epsilon depending on mode
         if eps is None:
             eps = self.eps if mode == "train" else self.eps_eval
@@ -176,7 +144,7 @@ class DQN:
             action = self.act(env, state.unsqueeze(0), eps=eps)
             
             # Step and optionally save in buffer if training
-            next_state, reward, is_done, is_stuck = self.step(env, action)
+            next_state, reward, is_done, is_stuck = env.step(action)
             is_done = is_done or is_stuck # Also stop if we get stuck
             episode_reward += float(reward)
             if mode == "train":

@@ -3,7 +3,7 @@ import numpy as np
 from multiprocessing import shared_memory
 import torch
 import random
-from cnn import get_device
+from cnn import device
 
 class ActionSpace:
     def __init__(self, num_actions):
@@ -22,7 +22,10 @@ class GameEnvironment:
         self.same_reward_counter = 0
         self.prev_action = None
         self.plotter=plotter
-        self.action_space = ActionSpace(7)
+        self.action_space = ActionSpace(4)
+        self.left_flipper_up = False
+        self.right_flipper_up = False
+        self.plunger_down = False
 
         self.prev_score = np.array([0], dtype=np.int32)
         
@@ -44,7 +47,6 @@ class GameEnvironment:
         # START GAME AND FAST FORWARD 
         self.process = self.start_game()
         self.fast_forward_frames(550)
-        self.get_state()
 
     def __del__(self):
         self.process.kill()
@@ -85,10 +87,19 @@ class GameEnvironment:
             return True
         return False
 
-
     def int_to_c_action(self, int_action):
-        # right flipper, left flipper, plunger, tilt left, tilt right, no action
-        action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
+        """Given an integer action representing toggle actions, return a string represting the action we should send to the game."""
+        if int_action == 0:
+            action = "l" if self.left_flipper_up else "L"
+        elif int_action == 1:
+            action = "r" if self.right_flipper_up else "R"
+        elif int_action == 2:
+            action = "." if self.plunger_down else "!"
+        elif int_action == 3:
+            action = "p"
+        else:
+            raise Exception(f"Unknown int_action: {int_action}")
+
         self.extra_additive_reward = 0 if action in "RrLl!." else 0
         self.extra_multiplicative_reward = 1.2 if action in "p" else 1
         if action == self.prev_action:
@@ -104,24 +115,44 @@ class GameEnvironment:
             self.same_reward_counter = 0
         reward = min(reward, self.extra_multiplicative_reward)
         reward = torch.tensor(reward, dtype=torch.float32)
-        reward.to(get_device())
+        reward.to(device)
         self.prev_score[:] = self.score[:]
         return reward
 
-    def get_state(self):
+    def get_ball_state(self):
+        """Get the current ball state (position and velocity, 4 values)."""
         state = self.ball_info.astype(np.float32)
         state = state[[0,1,4,5]]
         state[0] = state[0] / 10
         state[1] = state[1] / 20
         state = torch.from_numpy(state)
-        state = state.to(get_device())
+        state = state.to(device)
         return state
 
+    def get_state(self):
+        """Get the complete state, including ball position/velocity and flipper/plunger toggle values (7 values)."""
+        action_state_tensor = torch.tensor([self.left_flipper_up, self.right_flipper_up, self.plunger_down], dtype=torch.float32).to(device)
+        return torch.cat((self.get_ball_state(), action_state_tensor), dim=0)
+
+    def update_toggles(self, action):
+        if action == 0:
+            self.left_flipper_up = not self.left_flipper_up
+        elif action == 1:
+            self.right_flipper_up = not self.right_flipper_up
+        elif action == 2:
+            self.plunger_down = not self.plunger_down
+
     def step(self, action):
+        # Action is one of 4 possible values:
+        # 0: toggle left flipper
+        # 1: toggle right flipper
+        # 2: toggle plunger
+        # 3: do nothing
         # if self.frame_id % 100 == 0:
             # print(f"      Frame {self.frame_id}, Score {self.score[0]}")
         self.action[:] = self.int_to_c_action(action)[:]
-        # for i in range(self.k_skip):
+        # Update our internal representation of flipper and plunger
+        self.update_toggles(action)
         while self.sem[0] != 4:
             if self.sem[0] < 0:
                 break
@@ -132,6 +163,5 @@ class GameEnvironment:
         self.frame_id += 4
         return state, reward, self.is_done(), self.is_stuck()
 
-
-def start_game():
-    return GameEnvironment(600, 416)
+# def start_game():
+#     return GameEnvironment(600, 416)

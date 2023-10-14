@@ -40,6 +40,7 @@ def train_loop(agent, test_every_n_episodes):
             print("Saving model and data...", end="")
             agent.save()
             print("done")
+            acc_loss = 0
         else:
             episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="train")
             acc_loss += episode_loss

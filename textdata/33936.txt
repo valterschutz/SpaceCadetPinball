@@ -1,0 +1,3 @@
+Q values at game start: [-0.08683851  0.01677722 -0.0837369   0.00226585 -0.036163    0.06374627
+  0.1108609 ]
+Evaluation reward: 1.1912754774093628Summary of last 10 episodes: Step: 4621, Mean Loss: 0.166957, Eps: 0.996766

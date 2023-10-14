@@ -75,6 +75,7 @@ TPinballTable::TPinballTable(): TPinballComponent(nullptr, -1, false)
 
 	CurrentPlayer = 0;
 	MaxBallCount = 3;
+	MaxBallCount = 1; // COMMENT/UNCOMMENT
 	ScoreBallcount = score::create("ballcount1", render::background_bitmap);
 	ScorePlayerNumber1 = score::create("player_number1", render::background_bitmap);
 	int groupIndexObjects = loader::query_handle("table_objects");
@@ -558,7 +559,7 @@ int TPinballTable::Message(MessageCode code, float value)
 		loader::play_sound(SoundIndex2, nullptr, "TPinballTable3");
 		pb::MissTextBox->Clear();
 		pb::InfoTextBox->Display(pb::get_rc_string(Msg::STRING135), -1.0);
-		EndGameTimeoutTimer = timer::set(3.0, this, EndGame_timeout);
+		EndGameTimeoutTimer = timer::set(0.0, this, EndGame_timeout);
 		break;
 	case MessageCode::Reset:
 		for (auto component : ComponentList)
@@ -577,7 +578,7 @@ int TPinballTable::Message(MessageCode code, float value)
 		ScoreMultiplier = 0;
 		ScoreAdded = 0;
 		ReflexShotScore = 0;
-		BonusScore = 10000;
+		BonusScore = 0;
 		BonusScoreFlag = false;
 		JackpotScore = 20000;
 		JackpotScoreFlag = false;

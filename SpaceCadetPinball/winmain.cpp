@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "winmain.h"
+#include <threads.h>
 
 #include "control.h"
 #include "fullscrn.h"
@@ -124,7 +125,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		}
 		if (Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024) != 0)
 		{
-			printf("Could not open audio device, continuing without audio.\nSDL Error: %s\n", SDL_GetError());
+			//printf("Could not open audio device, continuing without audio.\nSDL Error: %s\n", SDL_GetError());
 			SDL_ClearError();
 		}
 		else
@@ -285,6 +286,12 @@ void winmain::MainLoop()
 
 	while (true)
 	{
+		// COMMENT/UNCOMMENT sleep
+		// struct timespec ts;
+		// ts.tv_sec = 0;
+		// ts.tv_nsec = 5000000;
+		// thrd_sleep(&ts, NULL);
+
 		if (DispFrameRate)
 		{
 			auto curTime = Clock::now();
@@ -1053,7 +1060,7 @@ int winmain::ProcessWindowMessages()
 	{
 		idleWait = static_cast<int>(TargetFrameTime.count());
 		// COMMENT/UNCOMMENT
-		//while (SDL_PollEvent(&event))
+		// while (SDL_PollEvent(&event))
 		{
 			if (!event_handler(&event))
 				return 0;

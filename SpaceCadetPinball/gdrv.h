@@ -1,5 +1,7 @@
 #pragma once
 
+void extract_red_pixels(const uint8_t* rgba, uint8_t* red, size_t h, size_t w);
+
 enum class BitmapTypes : uint8_t
 {
 	None = 0,

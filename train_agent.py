@@ -17,33 +17,42 @@ def train_loop(agent, test_every_n_episodes):
 
     # If we are resuming a previously trained model, remember where we ended
     if len(agent.saved_episodes) > 0:
-        episodes_so_far = agent.episodes[-1]
+        episode = agent.episodes[-1]
     else:
-        episodes_so_far = 0
+        episode = 0
 
     # Keep track of accumulated loss over the past training episodes
     # and reset it when evaluating the model
     print("Replay buffer full. Starting training...")
     acc_loss = 0
-    for episode in itertools.count(start=episodes_so_far):
-        if episode != 0 and episode % test_every_n_episodes == 0:
-            mean_loss = acc_loss/test_every_n_episodes
-            print(f"Summary for episode {episode-test_every_n_episodes+1}-{episode-1}:")
-            print(f"  Average loss: {mean_loss}")
-            print(f"  Epsilon: {agent.eps}")
-            episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="eval")
-            print(f"Validation, episode {episode}:")
-            print(f"  Q: {initial_Q}")
-            print(f"  Reward: {episode_reward}")
-            print(f"  Epsilon: {agent.eps_eval}")
-            agent.append_data(episode, episode_reward, mean_loss, initial_Q, agent.eps)
-            print("Saving model and data...", end="")
-            agent.save()
-            print("done")
-            acc_loss = 0
-        else:
-            episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="train")
-            acc_loss += episode_loss
+    next_evaluation_episode = test_every_n_episodes-1
+    while True:
+        # Do som training episodes (test_every_n_episodes - 1)
+        with tqdm(initial=0, total=test_every_n_episodes-1, desc="Progress") as pbar:
+            while episode < next_evaluation_episode:
+                episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="train")
+                episode += 1
+                pbar.update(1)
+                acc_loss += episode_loss
+
+        # Do one evaluation episode
+        mean_loss = acc_loss/test_every_n_episodes
+        print(f"Summary for episode {episode-test_every_n_episodes+1}-{episode-1}:")
+        print(f"  Average loss: {mean_loss}")
+        print(f"  Epsilon: {agent.eps}")
+        episode_reward, episode_loss, normal_end, initial_Q = agent.play_one_episode(mode="eval")
+        print(f"Validation, episode {episode}:")
+        print(f"  Q: {initial_Q}")
+        print(f"  Reward: {episode_reward}")
+        print(f"  Epsilon: {agent.eps_eval}")
+        agent.append_data(episode, episode_reward, mean_loss, initial_Q, agent.eps)
+        print("Saving model and data...", end="")
+        agent.save()
+        print("done")
+        acc_loss = 0
+        next_evaluation_episode = episode + test_every_n_episodes
+
+        # Decay epsilon
         agent.eps_decay()
 
 if __name__ == "__main__":

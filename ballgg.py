@@ -1,8 +1,6 @@
 import time
-import glob
 import os
 import sys
-import datetime
 import torch
 import random
 import numpy as np
@@ -17,11 +15,13 @@ from ballhandler import GameEnvironment
 BUFFER_SIZE = 4000000
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025, name=""):
+    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025,
+                 eps_min=0.2, eps_max=1, eps_eval=0.1,
+                 eps_decay_per_episode=1e-4, name=""):
 
         # The second part of the Q-network
         self.model = nn.Sequential(
-                nn.Linear(7, 128),
+            nn.Linear(7, 128),
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
@@ -29,12 +29,18 @@ class DQN:
             nn.ReLU(),
            nn.Linear(128, action_size)
         ).to(device)
+
         self.target_model = deepcopy(self.model).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = nn.MSELoss()
 
         self.gamma = gamma
         self.tau = tau
+        self.eps_min = eps_min
+        self.eps_max = eps_max
+        self.eps_decay_per_episode = eps_decay_per_episode
+        self.eps = eps_max
+        self.eps_eval = eps_eval
 
         self.name = name
 
@@ -57,8 +63,11 @@ class DQN:
         for tp, sp in zip(self.target_model.parameters(), self.model.parameters()):
             tp.data.copy_((1 - self.tau) * tp.data + self.tau * sp.data)
 
-    def act(self, env, state, eps, save_Q=False):
-        """Calculate optimal action from a given state."""
+    def act(self, env, state, eps=None):
+        """Calculate optimal action from a given state. Custom epsilon can be supplied, or use one provided by the agent."""
+
+        if not eps:
+            eps = self.eps
 
         with torch.no_grad():
             if random.random() < eps:
@@ -66,10 +75,6 @@ class DQN:
             else:
                 state = torch.as_tensor(state, dtype=torch.float).to(device) # TODO: this should ideally already be on the device as a tensor?
                 qs = self.model(state)
-                qs_np = qs.cpu().numpy()[0]
-                if save_Q:
-                    self.q.append(qs_np)
-                    print(f"Q-values: {qs_np}") # TODO: weird to have printing here
                 action = torch.argmax(qs).cpu().numpy().item()
         return action
 
@@ -143,35 +148,67 @@ class DQN:
         action_state_tensor = torch.tensor([self.lflipper_state, self.rflipper_state, self.plunger_state], dtype=torch.float32).to(device)
         return torch.cat((state, action_state_tensor), dim=0)
 
-
-def evaluate_policy(agent, episodes=5, is_printing=False):
-    """Evaluate the agent without training it for a certain amount of episodes."""
+    def epsilon_decay(self):
+        """Decays epsilon corresponding to one episode."""
+        self.eps = max(self.eps_min, self.eps-self.eps_decay_per_episode)
     
-    returns = []
-    eps = 0.1 # TODO: should be a parameter
-
-    print(f"Evaluating policy for {episodes} episodes with eps={eps}") # TODO: should not be here
-
-    for _ in range(episodes):
+    def play_one_episode(self, mode):
+        """Play one complete episode, either in training mode or evaluation mode. Return the total reward."""
+        # mode is either "train" or "eval"
         env = GameEnvironment(600, 416)
+        agent.reset_action_state()
         state = agent.get_state(env)
-        done, total_reward = False, 0
-        print("Actions:")
-        is_first_frame = True
+        # choose epsilon depending on mode
+        eps = self.eps if mode == "train" else self.eps_eval
+        done = False
         while not done:
-            action = agent.act(env, state.unsqueeze(0), eps, is_printing and is_first_frame)
-            print("RrLl!.p"[action], end="")
-            is_first_frame = False
-            state, reward = agent.step(env, action)
-            total_reward += reward
+            # Action
+            action = agent.act(env, state.unsqueeze(0))
+            
+            # Step and save in buffer
+            next_state, reward = agent.step(env, action)
+            acc_reward += reward
             done = env.is_done()
-        returns.append(total_reward)
-        if is_printing:
-            print("")
-        del env
-        time.sleep(0.1)
+            buffer.add((state, action, reward, next_state, int(done)))
+            state = next_state
+
+            # Backprop
+            if step == BUFFER_SIZE//1000:
+                print("Starting backprop")
+                training_started = True
+            if step > BUFFER_SIZE//1000:
+                batch, weights, tree_idxs = buffer.sample(batch_size)
+                loss, td_error = agent.update(batch)
+                buffer.update_priorities(tree_idxs, td_error.numpy())
+                acc_loss += loss
+                counter += 1
+            step += 1
+
+
+def evaluate_policy(agent, eps):
+    """Evaluate the agent without training it for one episode."""
+    
+    print(f"Evaluating policy for one episode with eps={eps}") # TODO: should not be here
+
+    env = GameEnvironment(600, 416)
+    agent.reset_action_state()
+    state = agent.get_state(env)
+    qs = agent.model(state)
+    qs_np = qs.cpu().numpy()[0]
+    print(f"Q-values: {qs_np}") # TODO: weird to have printing here
+    done, episode_reward = False, 0
+    print("Actions:")
+    while not done:
+        action = agent.act(env, state.unsqueeze(0), eps)
+        print("RrLl!.p"[action], end="")
+        state, reward = agent.step(env, action)
+        episode_reward += reward
+        done = env.is_done()
+    print("")
+    del env
+    time.sleep(0.1)
         
-    return np.mean(returns), np.std(returns)
+    return episode_reward, qs_np
 
 
 def train(agent, buffer, batch_size=128,
@@ -185,61 +222,35 @@ def train(agent, buffer, batch_size=128,
         episodes = agent.episodes[-1]
     else:
         episodes = 0
-    step = 0
-    total_reward = 0
-    loss_count, total_loss = 0, 0
+    step = 0 # How many states we have seen in total across all episodes
+    eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
+    acc_reward, acc_loss = 0, 0 # Accumulated reward and loss over several episodes
+    counter = 0 # Keeps track of how many episodes the above variables correspond to
 
     done = False
-    training_started = False
+    training_started = False # Only start training when buffer is sufficiently full
     while True:
-        if loss_count and training_started:
+        if counter and training_started:
             time.sleep(0.1)
-            eval_reward, _ = evaluate_policy(agent, episodes=1, is_printing=True)
-            agent.reward.append(eval_reward)
-            mean_loss = total_loss / loss_count
+            eval_episode_reward, eval_qs = evaluate_policy(agent, eps)
+            agent.episode.append(episodes)
+            agent.q.append(eval_qs)
+            agent.reward.append(eval_episode_reward)
+            mean_loss = acc_loss / counter
             agent.loss.append(mean_loss)
-            agent.episodes.append(episodes)
-            print(f"Evaluation reward: {eval_reward}")
             print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {mean_loss:.6f}, Eps: {eps}\n")
             agent.save()
-            loss_count, total_loss = 0, 0
+            counter, acc_loss = 0, 0
 
         # Run some episodes
         for _ in range(test_every_episodes):
-            total_reward = 0
-            env = GameEnvironment(600, 416)
-            agent.reset_action_state()
-            state = agent.get_state(env)
-            while not done:
-
-                # Action
-                eps = max(eps_max - (eps_max - eps_min) * step / decrease_eps_steps, eps_min)
-                action = agent.act(env, state.unsqueeze(0), eps)
-                
-                # Step and save in buffer
-                next_state, reward = agent.step(env, action)
-                total_reward += reward
-                done = env.is_done()
-                buffer.add((state, action, reward, next_state, int(done)))
-                state = next_state
-
-                # Backprop
-                if step == BUFFER_SIZE//1000:
-                    print("Starting backprop")
-                    training_started = True
-                if step > BUFFER_SIZE//1000:
-                    batch, weights, tree_idxs = buffer.sample(batch_size)
-                    loss, td_error = agent.update(batch)
-                    buffer.update_priorities(tree_idxs, td_error.numpy())
-                    total_loss += loss
-                    loss_count += 1
-                step += 1
+            agent.play_one_episode()
 
             # Episode finished
             done = False
             del env
             time.sleep(0.1)
-            print(f"   Episode {episodes} done... Total reward = {total_reward:.3f}")
+            print(f"   Episode {episodes} done... Total reward = {acc_reward:.3f}")
             episodes += 1
 
 def append_to_file(data):

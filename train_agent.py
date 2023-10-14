@@ -83,6 +83,18 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     test_every_n_episodes = args.test_every_n_episodes
 
+    print("Creating DQN agent with parameters:")
+    print(f"  gamma={gamma}")
+    print(f"  tau={tau}")
+    print(f"  lr={lr}")
+    print(f"  eps_min={eps_min}")
+    print(f"  eps_max={eps_max}")
+    print(f"  eps_eval={eps_eval}")
+    print(f"  eps_decay_per_episode={eps_decay_per_episode}")
+    print(f"  buffer_size={buffer_size}")
+    print(f"  batch_size={batch_size}")
+    print(f"  name={name}")
+
     agent = DQN(
         gamma=gamma,
         tau=tau,

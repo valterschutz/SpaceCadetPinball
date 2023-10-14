@@ -1,5 +1,4 @@
 import argparse
-import itertools
 from dqn import DQN
 from tqdm import tqdm
 
@@ -34,6 +33,7 @@ def train_loop(agent, test_every_n_episodes):
                 episode += 1
                 pbar.update(1)
                 acc_loss += episode_loss
+                agent.eps_decay()
 
         # Do one evaluation episode
         mean_loss = acc_loss/test_every_n_episodes
@@ -50,10 +50,8 @@ def train_loop(agent, test_every_n_episodes):
         agent.save()
         print("done")
         acc_loss = 0
-        next_evaluation_episode = episode + test_every_n_episodes
-
-        # Decay epsilon
         agent.eps_decay()
+        next_evaluation_episode = episode + test_every_n_episodes
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a RL agent to play pinball")

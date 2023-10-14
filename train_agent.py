@@ -83,18 +83,6 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     test_every_n_episodes = args.test_every_n_episodes
 
-    print("Creating DQN agent with parameters:")
-    print(f"  gamma={gamma}")
-    print(f"  tau={tau}")
-    print(f"  lr={lr}")
-    print(f"  eps_min={eps_min}")
-    print(f"  eps_max={eps_max}")
-    print(f"  eps_eval={eps_eval}")
-    print(f"  eps_decay_per_episode={eps_decay_per_episode}")
-    print(f"  buffer_size={buffer_size}")
-    print(f"  batch_size={batch_size}")
-    print(f"  name={name}")
-
     agent = DQN(
         gamma=gamma,
         tau=tau,
@@ -110,9 +98,20 @@ if __name__ == "__main__":
 
     if mode == "load":
         agent.load()
+        print("Loading DQN agent with parameters:")
     elif mode == "new":
-        pass
+        print("Creating new DQN agent with parameters:")
     else:
         raise Exception("Did not receive a valid mode")
+    print(f"  gamma={gamma}")
+    print(f"  tau={tau}")
+    print(f"  lr={lr}")
+    print(f"  eps_min={eps_min}")
+    print(f"  eps_max={eps_max}")
+    print(f"  eps_eval={eps_eval}")
+    print(f"  eps_decay_per_episode={eps_decay_per_episode}")
+    print(f"  buffer_size={buffer_size}")
+    print(f"  batch_size={batch_size}")
+    print(f"  name={name}")
 
     train_loop(agent, test_every_n_episodes)

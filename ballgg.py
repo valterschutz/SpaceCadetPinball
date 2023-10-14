@@ -265,10 +265,10 @@ def print_model_layers(model):
 
 def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=32, eps_max=1, eps_min=0.2, decrease_eps_steps=1000000, test_every_episodes=20)
+    train(agent, buffer, batch_size=128, eps_max=1, eps_min=0.5, decrease_eps_steps=1000000, test_every_episodes=20)
 
 if __name__ == "__main__":
-    lr = 5e-6
+    lr = 1e-6
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         name = input("DQN agent to load: ")
         pickle_filename = f"pickles/model_{name}.pkl"
@@ -278,9 +278,9 @@ if __name__ == "__main__":
         # Create a new DQN model if not loading
         # Ask for a name
         name = input("Enter a name for new DQN agent: ")
-        agent = DQN(lr=lr, name=name)
+        agent = DQN(lr=lr, name=name, gamma=0.995)
     agent.optimizer = optim.Adam(agent.model.parameters(), lr=lr)
-    agent.tau = 0.01
+    agent.tau = 0.05
         
     run_train_loop(agent)
 

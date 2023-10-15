@@ -42,7 +42,7 @@ class DQN:
 
         self.env_fun = env_fun # Called each time to start new episode
 
-        self.target_model = deepcopy(self.model).to(device)
+        self.target_model = self.init_target_model()
         self.target_model.eval()
         self.optimizer = self.init_optimizer()
         self.criterion = nn.MSELoss()
@@ -60,6 +60,9 @@ class DQN:
         self.saved_losses = []
         self.saved_rewards = []
         self.saved_eps = []
+
+    def init_target_model(self):
+        return deepcopy(self.model).to(device)
 
     def init_optimizer(self):
         return optim.Adam(self.model.parameters(), lr=self.lr)
@@ -134,6 +137,7 @@ class DQN:
         model_filename = f"{self.name}.pth"
         data_filename = f"{self.name}.npz"
         self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
+        self.target_model = self.init_target_model()
         self.optimizer = self.init_optimizer()
         data = np.load(f"saves/{data_filename}")
         self.saved_episodes = data["saved_episodes"].tolist()

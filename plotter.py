@@ -34,7 +34,7 @@ def plot_reward(episodes, reward, name):
     plt.savefig(f'figs/{name}_reward.png')
     plt.close()
 
-def plot_eps(episodes, eps):
+def plot_eps(episodes, eps, name):
     plt.figure()
     sns.lineplot(x=episodes, y=eps)
     plt.xlabel('Episode')

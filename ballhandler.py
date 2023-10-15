@@ -160,8 +160,12 @@ class GameEnvironment:
         if self.sem[0] == 4:
             self.sem[:] = self.init_sem[:]
         state, reward = self.get_state(), self.get_reward()
+        is_done, is_stuck = self.is_done(), self.is_stuck()
+        # Negative reward if we lose
+        if is_done or is_stuck:
+            reward -= 5
         self.frame_id += 4
-        return state, reward, self.is_done(), self.is_stuck()
+        return state, reward, is_done, is_stuck
 
 # def start_game():
 #     return GameEnvironment(600, 416)

@@ -157,7 +157,7 @@ class DQN:
         return self.buffer.real_size >= self.batch_size
 
     
-    def play_one_episode(self, mode, eps=None):
+    def play_one_episode(self, mode, eps=None, delay=None):
         """
         Play one complete episode, either in training mode or evaluation mode,
         optionally with a custom epsilon. Returns:
@@ -197,6 +197,10 @@ class DQN:
                 loss, td_error = self.update(batch)
                 self.buffer.update_priorities(tree_idxs, td_error.numpy())
                 episode_loss += loss
+
+            # Delay optional
+            if not delay is None:
+                time.sleep(delay)
 
         # Remove environment and return
         del env

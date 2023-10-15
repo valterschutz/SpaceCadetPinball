@@ -2,12 +2,14 @@ import argparse
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 from dqn import DQN
+import pdb
 
 sns.set_style("whitegrid")
 
 def plot_q_values(episodes, q_values, name):
-    # q_values = np.array(q_values)
+    q_values = np.array(q_values)
     plt.figure()
     for i in range(4):
         sns.lineplot(x=episodes, y=q_values[:,i], label=["Left flipper", "Right flipper", "Plunger", "No action"][i])

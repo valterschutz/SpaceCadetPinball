@@ -21,13 +21,15 @@ class DQN:
 
         # The second part of the Q-network
         self.model = nn.Sequential(
-                nn.Linear(7, 128),
+            nn.Linear(7, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-           nn.Linear(128, action_size)
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, action_size)
         ).to(device)
         self.target_model = deepcopy(self.model).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
@@ -188,10 +190,12 @@ def train(agent, buffer, batch_size=128,
     step = 0
     total_reward = 0
     loss_count, total_loss = 0, 0
-
+    def get_gamma(ep):
+        return 0.999 - 0.099*np.exp(-ep/500)
     done = False
     training_started = False
     while True:
+        agent.gamma = get_gamma(episodes)
         if loss_count and training_started:
             time.sleep(0.1)
             eval_reward, _ = evaluate_policy(agent, episodes=1, is_printing=True)
@@ -200,7 +204,7 @@ def train(agent, buffer, batch_size=128,
             agent.loss.append(mean_loss)
             agent.episodes.append(episodes)
             print(f"Evaluation reward: {eval_reward}")
-            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {mean_loss:.6f}, Eps: {eps}\n")
+            print(f"Summary of last {test_every_episodes} episodes: Step: {step}, Mean Loss: {mean_loss:.6f}, Eps: {eps}, Gamma: {agent.gamma}\n")
             agent.save()
             loss_count, total_loss = 0, 0
 
@@ -265,7 +269,7 @@ def print_model_layers(model):
 
 def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=128, eps_max=1, eps_min=0.5, decrease_eps_steps=1000000, test_every_episodes=20)
+    train(agent, buffer, batch_size=16, eps_max=1, eps_min=0.5, decrease_eps_steps=500000, test_every_episodes=20)
 
 if __name__ == "__main__":
     lr = 1e-6
@@ -278,10 +282,7 @@ if __name__ == "__main__":
         # Create a new DQN model if not loading
         # Ask for a name
         name = input("Enter a name for new DQN agent: ")
-        agent = DQN(lr=lr, name=name, gamma=0.995)
+        agent = DQN(lr=lr, name=name, gamma=0.95)
     agent.optimizer = optim.Adam(agent.model.parameters(), lr=lr)
-    agent.tau = 0.05
         
     run_train_loop(agent)
-
-

@@ -9,8 +9,8 @@ def train_loop(agent, test_every_n_episodes):
     is_trainable = agent.is_trainable()
     if not is_trainable:
         print(f"Filling up replay buffer...")
-        with tqdm(initial=agent.buffer.real_size, total=agent.buffer.size) as pbar:
-            while agent.buffer.real_size < agent.buffer.size:
+        with tqdm(initial=agent.buffer.real_size, total=agent.batch_size) as pbar:
+            while agent.buffer.real_size < agent.batch_size:
                 agent.play_one_episode(mode="train")
                 pbar.update(agent.buffer.real_size - pbar.n)
 
@@ -22,7 +22,7 @@ def train_loop(agent, test_every_n_episodes):
 
     # Keep track of accumulated loss over the past training episodes
     # and reset it when evaluating the model
-    print("Replay buffer full. Starting training...")
+    print("Replay buffer filled up batch size. Starting training...")
     acc_loss = 0
     next_evaluation_episode = test_every_n_episodes-1
     while True:

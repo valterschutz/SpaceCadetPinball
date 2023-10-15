@@ -1,5 +1,6 @@
 import pdb
 import numpy as np
+import time
 import os
 import torch
 import random
@@ -152,8 +153,8 @@ class DQN:
         self.eps = max(self.eps_min, self.eps-self.eps_decay_per_episode)
 
     def is_trainable(self):
-        """Returns True if the model is ready to be trained, i.e the replay buffer is full."""
-        return self.buffer.real_size == self.buffer.size
+        """Returns True if the model is ready to be trained, i.e the replay buffer has at least the same size as batch size."""
+        return self.buffer.real_size >= self.batch_size
 
     
     def play_one_episode(self, mode, eps=None):

@@ -67,6 +67,7 @@ if __name__ == "__main__":
     parser.add_argument("--buffer_size", type=int, default=10_000, help="Size of replay buffer")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size to use during training on replay buffer")
     parser.add_argument("--test_every_n_episodes", type=int, default=50, help="How many episodes to wait before evaluating the model again")
+    parser.add_argument("--use_target_model", type=int, default=1, help="Whether to use a target model")
     args = parser.parse_args()
     mode = args.mode
     name = args.name
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     buffer_size = args.buffer_size
     batch_size = args.batch_size
     test_every_n_episodes = args.test_every_n_episodes
+    use_target_model = bool(args.use_target_model)
 
     agent = DQN(
         gamma=gamma,
@@ -91,6 +93,7 @@ if __name__ == "__main__":
         eps_decay_per_episode=eps_decay_per_episode,
         buffer_size=buffer_size,
         batch_size=batch_size,
+        use_target_model=use_target_model,
         name=name
     )
 
@@ -110,6 +113,7 @@ if __name__ == "__main__":
     print(f"  eps_decay_per_episode={eps_decay_per_episode}")
     print(f"  buffer_size={buffer_size}")
     print(f"  batch_size={batch_size}")
+    print(f"  use_target_model={use_target_model}")
     print(f"  name={name}")
 
     train_loop(agent, test_every_n_episodes)

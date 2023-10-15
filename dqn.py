@@ -14,7 +14,7 @@ from ballhandler import GameEnvironment
 class DQN:
     def __init__(self, action_size=4, gamma=0.99, tau=0.01, lr=0.00025,
                  eps_min=0.2, eps_max=1, eps_eval=0.1,
-                 eps_decay_per_episode=1e-4, buffer_size=4000000, batch_size=32,
+                 eps_decay_per_episode=1e-4, buffer_size=4000000, batch_size=32,use_target_model=True,
                  env_fun=lambda : GameEnvironment(600, 416), name=""):
 
         # The second part of the Q-network
@@ -31,6 +31,7 @@ class DQN:
         ).to(device)
         self.model.eval()
 
+        self.use_target_model = use_target_model
         self.lr = lr
         self.gamma = gamma
         self.tau = tau
@@ -42,8 +43,9 @@ class DQN:
 
         self.env_fun = env_fun # Called each time to start new episode
 
-        self.target_model = self.init_target_model()
-        self.target_model.eval()
+        if self.use_target_model:
+            self.target_model = self.init_target_model()
+            self.target_model.eval()
         self.optimizer = self.init_optimizer()
         self.criterion = nn.MSELoss()
 
@@ -94,7 +96,10 @@ class DQN:
 
         state, action, reward, next_state, done = batch
 
-        V_next = self.target_model(next_state).max(dim=1).values
+        if self.use_target_model:
+            V_next = self.target_model(next_state).max(dim=1).values
+        else:
+            V_next = self.model(next_state).max(dim=1).values
         Q_target = reward + self.gamma * (1 - done) * V_next
         Q = torch.gather(self.model(state), 1, action.to(torch.int64).unsqueeze(1)).squeeze()
 
@@ -107,8 +112,9 @@ class DQN:
         loss.backward()
         self.optimizer.step()
 
-        with torch.no_grad():
-            self.soft_update()
+        if self.use_target_model:
+            with torch.no_grad():
+                self.soft_update()
 
         self.model.eval()
 
@@ -137,7 +143,8 @@ class DQN:
         model_filename = f"{self.name}.pth"
         data_filename = f"{self.name}.npz"
         self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
-        self.target_model = self.init_target_model()
+        if self.use_target_model:
+            self.target_model = self.init_target_model()
         self.optimizer = self.init_optimizer()
         data = np.load(f"saves/{data_filename}")
         self.saved_episodes = data["saved_episodes"].tolist()

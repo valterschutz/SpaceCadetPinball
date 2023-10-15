@@ -134,11 +134,11 @@ class DQN:
         self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
         self.optimizer = self.init_optimizer()
         data = np.load(f"saves/{data_filename}")
-        self.saved_episodes = data["saved_episodes"]
-        self.saved_rewards = data["saved_rewards"]
-        self.saved_losses = data["saved_losses"]
-        self.saved_Qs = data["saved_Qs"]
-        self.saved_eps = data["saved_eps"]
+        self.saved_episodes = data["saved_episodes"].tolist()
+        self.saved_rewards = data["saved_rewards"].tolist()
+        self.saved_losses = data["saved_losses"].tolist()
+        self.saved_Qs = data["saved_Qs"].tolist()
+        self.saved_eps = data["saved_eps"].tolist()
 
 
     def append_data(self, episode, episode_reward, mean_loss, initial_Q, eps):

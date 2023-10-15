@@ -157,7 +157,15 @@ class DQN:
 
     
     def play_one_episode(self, mode, eps=None):
-        """Play one complete episode, either in training mode or evaluation mode, optionally with a custom epsilon. Return the total episode reward, loss, whether the episode finished 'normally' and the Q-values found at the start."""
+        """
+        Play one complete episode, either in training mode or evaluation mode,
+        optionally with a custom epsilon. Returns:
+            the total episode reward
+            loss
+            whether the episode finished 'normally'
+            the Q-values found at the start
+            length of episode in steps
+        """
         # mode is either "train" or "eval"
         env = self.env_fun()
         state = env.get_state()
@@ -167,7 +175,10 @@ class DQN:
             eps = self.eps if mode == "train" else self.eps_eval
         is_done, is_stuck = False, False
         episode_reward, episode_loss = 0, 0
+        episode_len = 0
         while not is_done:
+            episode_len += 1
+
             # Action
             action = self.act(env, state.unsqueeze(0), eps=eps)
             
@@ -188,4 +199,4 @@ class DQN:
 
         # Remove environment and return
         del env
-        return episode_reward, episode_loss, (not is_stuck), initial_Q
+        return episode_reward, episode_loss, (not is_stuck), initial_Q, episode_len

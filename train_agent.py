@@ -16,7 +16,7 @@ def train_loop(agent, test_every_n_episodes):
 
     # If we are resuming a previously trained model, remember where we ended
     if len(agent.saved_episodes) > 0:
-        episode = agent.saved_episodes[-1]
+        episode = agent.saved_episodes[-1] + 1
     else:
         episode = 0
 
@@ -24,7 +24,7 @@ def train_loop(agent, test_every_n_episodes):
     # and reset it when evaluating the model
     print("Replay buffer filled up batch size. Starting training...")
     acc_loss = 0
-    next_evaluation_episode = test_every_n_episodes-1
+    next_evaluation_episode = episode + test_every_n_episodes-1
     while True:
         # Do som training episodes (test_every_n_episodes - 1)
         with tqdm(initial=0, total=test_every_n_episodes-1, desc="Progress") as pbar:

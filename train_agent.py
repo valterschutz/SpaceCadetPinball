@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--eps_max", type=float, default=1, help="Maximum allowed epsilon")
     parser.add_argument("--eps_eval", type=float, default=0.1, help="Epsilon to use during evaluation of policy")
     parser.add_argument("--eps_decay_per_episode", type=float, default=1e-4, help="How much to decay epsilon by each episode")
-    parser.add_argument("--buffer_size", type=int, default=10_000, help="Size of replay buffer")
+    parser.add_argument("--buffer_size", type=int, default=4_000_000, help="Size of replay buffer")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size to use during training on replay buffer")
     parser.add_argument("--test_every_n_episodes", type=int, default=50, help="How many episodes to wait before evaluating the model again")
     parser.add_argument("--use_target_model", type=int, default=1, help="Whether to use a target model")

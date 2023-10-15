@@ -7,9 +7,9 @@ def plot_q_values(episodes, q_values, name):
     q_values = np.array(q_values)
     plt.figure()
     for i in range(7):
-        plt.plot(episodes, q_values[:,i], label="RrLl!.p"[i])
+        plt.plot(q_values[:,i], label="RrLl!.p"[i])
 
-    plt.xlabel('Episode')
+    #plt.xlabel('Episode')
     plt.ylabel('Q-Values')
     plt.legend()
     plt.savefig(f'figs/{name}_q-values.png')
@@ -17,16 +17,18 @@ def plot_q_values(episodes, q_values, name):
 
 def plot_mean_loss(episodes, mean_loss_values, name):
     plt.figure()
-    plt.plot(episodes, mean_loss_values)
-    plt.xlabel('Episode')
+    #plt.plot(episodes[:len(mean_loss_values)], mean_loss_values)
+    plt.plot(mean_loss_values)
+    #plt.xlabel('Episode')
     plt.ylabel('Mean Loss')
     plt.savefig(f'figs/{name}_mean-loss.png')
     plt.close()
 
 def plot_reward(episodes, reward, name):
     plt.figure()
-    plt.plot(episodes, reward)
-    plt.xlabel('Episode')
+    #plt.plot(episodes[:len(reward)], reward)
+    plt.plot(reward)
+    #plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.savefig(f'figs/{name}_reward.png')
     plt.close()

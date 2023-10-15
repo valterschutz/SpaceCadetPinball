@@ -10,7 +10,7 @@ def plot_q_values(episodes, q_values, name):
     # q_values = np.array(q_values)
     plt.figure()
     for i in range(4):
-        sns.lineplot(x=episodes, y=q_values[:,i], label=["Left flipper", "Right plunger", "Plunger", "No action"][i])
+        sns.lineplot(x=episodes, y=q_values[:,i], label=["Left flipper", "Right flipper", "Plunger", "No action"][i])
 
     plt.xlabel('Episode')
     plt.ylabel('Q-Values')

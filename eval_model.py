@@ -1,8 +1,8 @@
 import time
 import itertools
 import random
-from gamehandler import GameEnvironment
-from gg import DQN
+from ballhandler import GameEnvironment
+from ballgg import DQN
 from cnn import device
 import pickle
 
@@ -21,13 +21,11 @@ def eval_agent(agent, episodes=None):
     for ep in iter:
         env = GameEnvironment(600, 416)
         done, total_reward = False, 0
-        state = env.get_state()
+        state = agent.get_state(env)
         while not done:
-            if random.random() < eps:
-                action = env.action_space.sample()
-            else:
-                action = agent.act(state.unsqueeze(0))
-            state, reward = env.step(action)
+            action = agent.act(env, state.unsqueeze(0), eps)
+            # state, reward = env.step(action)
+            state, reward = agent.step(env,action)
             done = env.is_done()
             total_reward += reward
             time.sleep(0.03)

@@ -19,13 +19,15 @@ class DQN:
 
         # The second part of the Q-network
         self.model = nn.Sequential(
-            nn.Linear(7, 128),
+            nn.Linear(7, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-           nn.Linear(128, action_size)
+            nn.Linear(256, 256),
+            nn.ReLU(),
+           nn.Linear(256, action_size)
         ).to(device)
         self.model.eval()
 

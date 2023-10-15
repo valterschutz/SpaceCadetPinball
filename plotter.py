@@ -34,10 +34,20 @@ def plot_reward(episodes, reward, name):
     plt.savefig(f'figs/{name}_reward.png')
     plt.close()
 
+def plot_eps(episodes, eps):
+    plt.figure()
+    sns.lineplot(x=episodes, y=eps)
+    plt.xlabel('Episode')
+    plt.ylabel('Epsilon')
+    plt.savefig(f'figs/{name}_eps.png')
+    plt.close()
+
+
 def plot_stuff(agent):
     plot_q_values(agent.saved_episodes, agent.saved_Qs, agent.name)
     plot_mean_loss(agent.saved_episodes, agent.saved_losses, agent.name)
     plot_reward(agent.saved_episodes, agent.saved_rewards, agent.name)
+    plot_eps(agent.saved_episodes, agent.saved_eps, agent.name)
 
 
 if __name__ == '__main__':

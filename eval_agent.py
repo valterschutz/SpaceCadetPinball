@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Evaluate a RL agent to play pinball")
     parser.add_argument("name", help="Name of model")
     parser.add_argument("--eps", type=float, default=0.1, help="Which epsilon to use for evaluation")
-    parser.add_argument("--delay", type=float, default=0.1, help="How many seconds to wait between each step in the simulation")
+    parser.add_argument("--delay", type=float, default=0.02, help="How many seconds to wait between each step in the simulation")
     args = parser.parse_args()
     name = args.name
     eps = args.eps

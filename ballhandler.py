@@ -163,7 +163,10 @@ class GameEnvironment:
         is_done, is_stuck = self.is_done(), self.is_stuck()
         # Negative reward if we lose
         if is_done or is_stuck:
-            reward -= 5
+            reward -= 1
+        # Negative reward if we take actions
+        if action in range(3):
+            reward -= 0.01
         self.frame_id += 4
         return state, reward, is_done, is_stuck
 

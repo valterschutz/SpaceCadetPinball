@@ -100,21 +100,20 @@ class GameEnvironment:
         else:
             raise Exception(f"Unknown int_action: {int_action}")
 
-        self.extra_additive_reward = 0 if action in "RrLl!." else 0
-        self.extra_multiplicative_reward = 1.2 if action in "p" else 1
-        if action == self.prev_action:
-            action = "p"
-        self.prev_action = action
+        # self.extra_additive_reward = 0 if action in "RrLl!." else 0
+        # self.extra_multiplicative_reward = 1.2 if action in "p" else 1
+        # self.prev_action = action
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
         score_diff = self.score[0] - self.prev_score[0]
         if score_diff == 0:
             self.same_reward_counter += 1
+            reward = 0
         else:
             self.same_reward_counter = 0
-        reward = min(score_diff, self.extra_multiplicative_reward)
-        reward = torch.tensor(score_diff, dtype=torch.float32)
+            reward = 1
+        reward = torch.tensor(reward, dtype=torch.float32)
         reward.to(device)
         self.prev_score[:] = self.score[:]
         return reward, score_diff

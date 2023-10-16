@@ -29,7 +29,7 @@ def train_loop(agent, test_every_n_episodes, buffer_start):
         # Do som training episodes (test_every_n_episodes - 1)
         with tqdm(initial=0, total=test_every_n_episodes-1, desc="Progress") as pbar:
             while episode < next_evaluation_episode:
-                episode_reward, episode_loss, normal_end, initial_Q, episode_len = agent.play_one_episode(mode="train")
+                episode_reward, episode_score, episode_loss, normal_end, initial_Q, episode_len = agent.play_one_episode(mode="train")
                 episode += 1
                 pbar.update(1)
                 acc_loss += (episode_loss/episode_len)
@@ -40,10 +40,11 @@ def train_loop(agent, test_every_n_episodes, buffer_start):
         print(f"Summary for episode {episode-test_every_n_episodes+1}-{episode-1}:")
         print(f"  Average loss: {mean_loss}")
         print(f"  Epsilon: {agent.eps}")
-        episode_reward, episode_loss, normal_end, initial_Q, episode_len = agent.play_one_episode(mode="eval")
+        episode_reward, episode_score, episode_loss, normal_end, initial_Q, episode_len = agent.play_one_episode(mode="eval")
         print(f"Validation, episode {episode}:")
         print(f"  Q: {initial_Q}")
         print(f"  Reward: {episode_reward}")
+        print(f"  Score: {episode_score}")
         print(f"  Epsilon: {agent.eps_eval}")
         agent.append_data(episode, episode_reward, mean_loss, initial_Q, agent.eps)
         print("Saving model and data...", end="")

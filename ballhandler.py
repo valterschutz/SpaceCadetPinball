@@ -154,6 +154,7 @@ class GameEnvironment:
         # Update our internal representation of flipper and plunger
         self.update_toggles(action)
         while self.sem[0] != 1:
+            print(f"sem is {self.sem[0]}")
             if self.sem[0] < 0:
                 break
         # sem is either < 0 or 4 here

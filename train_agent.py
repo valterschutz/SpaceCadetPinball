@@ -2,15 +2,15 @@ import argparse
 from dqn import DQN
 from tqdm import tqdm
 
-def train_loop(agent, test_every_n_episodes):
+def train_loop(agent, test_every_n_episodes, buffer_start):
     """Train the agent ad infinitum with decreasing epsilon. Test it every now and then."""
 
     # If replay buffer is not filled yet, fill it first
-    is_trainable = agent.is_trainable()
+    is_trainable = agent.buffer.real_size >= agent.batch_size*buffer_start
     if not is_trainable:
         print(f"Filling up replay buffer...")
-        with tqdm(initial=agent.buffer.real_size, total=agent.batch_size) as pbar:
-            while agent.buffer.real_size < agent.batch_size:
+        with tqdm(initial=agent.buffer.real_size, total=agent.batch_size*buffer_start) as pbar:
+            while agent.buffer.real_size < agent.batch_size*buffer_start:
                 agent.play_one_episode(mode="train")
                 pbar.update(agent.buffer.real_size - pbar.n)
 
@@ -22,7 +22,7 @@ def train_loop(agent, test_every_n_episodes):
 
     # Keep track of accumulated loss over the past training episodes
     # and reset it when evaluating the model
-    print("Replay buffer filled up batch size. Starting training...")
+    print(f"Replay buffer filled up to {buffer_start}*batch size. Starting training...")
     acc_loss = 0
     next_evaluation_episode = episode + test_every_n_episodes-1
     while True:
@@ -68,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size to use during training on replay buffer")
     parser.add_argument("--test_every_n_episodes", type=int, default=50, help="How many episodes to wait before evaluating the model again")
     parser.add_argument("--use_target_model", type=int, default=1, help="Whether to use a target model")
+    parser.add_argument("--buffer_start", type=int, default=10, help="How much to fill the replay buffer (in terms of batch size) before starting training")
     args = parser.parse_args()
     mode = args.mode
     name = args.name
@@ -82,6 +83,9 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     test_every_n_episodes = args.test_every_n_episodes
     use_target_model = bool(args.use_target_model)
+    buffer_start = args.buffer_start
+    if buffer_start > buffer_size:
+        raise Exception("buffer_start cannot be larger than buffer_size")
 
     agent = DQN(
         gamma=gamma,
@@ -114,6 +118,7 @@ if __name__ == "__main__":
     print(f"  buffer_size={buffer_size}")
     print(f"  batch_size={batch_size}")
     print(f"  use_target_model={use_target_model}")
+    print(f"  buffer filled {agent.buffer.real_size}/{agent.buffer.size}")
     print(f"  name={name}")
 
-    train_loop(agent, test_every_n_episodes)
+    train_loop(agent, test_every_n_episodes, buffer_start)

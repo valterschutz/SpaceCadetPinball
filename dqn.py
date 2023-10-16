@@ -1,4 +1,5 @@
 import pdb
+import pickle
 import numpy as np
 import time
 import os
@@ -125,6 +126,7 @@ class DQN:
 
         model_filename = f"{self.name}.pth"
         data_filename = f"{self.name}.npz"
+        buffer_filename = f"{self.name}.pkl"
         if not os.path.exists("saves"):
             os.makedirs("saves")
         torch.save(self.model.state_dict(), f"saves/{model_filename}")
@@ -136,12 +138,15 @@ class DQN:
             saved_Qs=self.saved_Qs,
             saved_eps=self.saved_eps 
         )
+        with open(f"saves/{buffer_filename}", "wb") as file:
+            pickle.dump(self.buffer, file)
 
     def load(self):
         """Load the model and saved data."""
 
         model_filename = f"{self.name}.pth"
         data_filename = f"{self.name}.npz"
+        buffer_filename = f"{self.name}.pkl"
         self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
         if self.use_target_model:
             self.target_model = self.init_target_model()
@@ -152,6 +157,8 @@ class DQN:
         self.saved_losses = data["saved_losses"].tolist()
         self.saved_Qs = data["saved_Qs"].tolist()
         self.saved_eps = data["saved_eps"].tolist()
+        with open(f"saves/{buffer_filename}", "rb") as file:
+            self.buffer = pickle.load(file)
 
 
     def append_data(self, episode, episode_reward, mean_loss, initial_Q, eps):
@@ -169,7 +176,6 @@ class DQN:
         """Returns True if the model is ready to be trained, i.e the replay buffer has at least the same size as batch size."""
         return self.buffer.real_size >= self.batch_size
 
-    
     def play_one_episode(self, mode, eps=None, delay=None):
         """
         Play one complete episode, either in training mode or evaluation mode,

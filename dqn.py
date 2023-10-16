@@ -12,24 +12,16 @@ from ballbuffer import PrioritizedReplayBuffer
 from cnn import device
 from ballhandler import GameEnvironment
 
+ACTION_SIZE = 4
+
 class DQN:
-    def __init__(self, action_size=4, gamma=0.99, tau=0.01, lr=0.00025,
+    def __init__(self, gamma=0.99, tau=0.01, lr=0.00025,
                  eps_min=0.2, eps_max=1, eps_eval=0.1,
                  eps_decay_per_episode=1e-4, buffer_size=4000000, batch_size=32,use_target_model=True,
                  env_fun=lambda : GameEnvironment(600, 416), name=""):
 
         # The second part of the Q-network
-        self.model = nn.Sequential(
-            nn.Linear(7, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-           nn.Linear(256, action_size)
-        ).to(device)
+        self.model = self.get_new_model()
         self.model.eval()
 
         self.use_target_model = use_target_model
@@ -45,13 +37,14 @@ class DQN:
         self.env_fun = env_fun # Called each time to start new episode
 
         if self.use_target_model:
-            self.target_model = self.init_target_model()
+            self.target_model = self.get_new_target_model()
             self.target_model.eval()
-        self.optimizer = self.init_optimizer()
+        self.optimizer = self.get_new_optimizer()
         self.criterion = nn.MSELoss()
 
         # Prioritized replay buffer
-        self.buffer = PrioritizedReplayBuffer(buffer_size)
+        self.buffer_size = buffer_size
+        self.buffer = self.get_new_buffer()
         self.batch_size = batch_size # Batch size for replay training
 
         self.name = name
@@ -64,11 +57,27 @@ class DQN:
         self.saved_rewards = []
         self.saved_eps = []
 
-    def init_target_model(self):
+    def get_new_model(self):
+        return nn.Sequential(
+            nn.Linear(7, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+           nn.Linear(256, ACTION_SIZE)
+        ).to(device)
+
+    def get_new_target_model(self):
         return deepcopy(self.model).to(device)
 
-    def init_optimizer(self):
+    def get_new_optimizer(self):
         return optim.Adam(self.model.parameters(), lr=self.lr)
+
+    def get_new_buffer(self):
+        return PrioritizedReplayBuffer(self.buffer_size)
 
     def soft_update(self):
         """Updates target model towards source model."""
@@ -147,18 +156,31 @@ class DQN:
         model_filename = f"{self.name}.pth"
         data_filename = f"{self.name}.npz"
         buffer_filename = f"{self.name}.pkl"
-        self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
+        try:
+            self.model.load_state_dict(torch.load(f"saves/{model_filename}"))
+        except:
+            self.model = self.get_new_model()
         if self.use_target_model:
-            self.target_model = self.init_target_model()
-        self.optimizer = self.init_optimizer()
-        data = np.load(f"saves/{data_filename}")
-        self.saved_episodes = data["saved_episodes"].tolist()
-        self.saved_rewards = data["saved_rewards"].tolist()
-        self.saved_losses = data["saved_losses"].tolist()
-        self.saved_Qs = data["saved_Qs"].tolist()
-        self.saved_eps = data["saved_eps"].tolist()
-        with open(f"saves/{buffer_filename}", "rb") as file:
-            self.buffer = pickle.load(file)
+            self.target_model = self.get_new_target_model()
+        self.optimizer = self.get_new_optimizer()
+        try:
+            data = np.load(f"saves/{data_filename}")
+            self.saved_episodes = data["saved_episodes"].tolist()
+            self.saved_rewards = data["saved_rewards"].tolist()
+            self.saved_losses = data["saved_losses"].tolist()
+            self.saved_Qs = data["saved_Qs"].tolist()
+            self.saved_eps = data["saved_eps"].tolist()
+        except:
+            self.saved_episodes = []
+            self.saved_rewards = []
+            self.saved_losses = []
+            self.saved_Qs = []
+            self.saved_eps = []
+        try:
+            with open(f"saves/{buffer_filename}", "rb") as file:
+                self.buffer = pickle.load(file)
+        except:
+            self.buffer = self.get_new_buffer()
 
 
     def append_data(self, episode, episode_reward, mean_loss, initial_Q, eps):

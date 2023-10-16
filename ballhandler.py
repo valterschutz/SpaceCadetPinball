@@ -153,11 +153,11 @@ class GameEnvironment:
         self.action[:] = self.int_to_c_action(action)[:]
         # Update our internal representation of flipper and plunger
         self.update_toggles(action)
-        while self.sem[0] != 4:
+        while self.sem[0] != 1:
             if self.sem[0] < 0:
                 break
         # sem is either < 0 or 4 here
-        if self.sem[0] == 4:
+        if self.sem[0] == 1:
             self.sem[:] = self.init_sem[:]
         state, reward = self.get_state(), self.get_reward()
         is_done, is_stuck = self.is_done(), self.is_stuck()
@@ -167,7 +167,7 @@ class GameEnvironment:
         # Negative reward if we take actions
         if action in range(3):
             reward -= 0.01
-        self.frame_id += 4
+        self.frame_id += 1
         return state, reward, is_done, is_stuck
 
 # def start_game():

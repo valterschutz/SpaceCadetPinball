@@ -23,6 +23,9 @@ class GameEnvironment:
         self.prev_action = None
         self.plotter=plotter
         self.action_space = ActionSpace(7)
+        self.leftflipper = False
+        self.rightflipper = False
+        self.reward_cap = 1
 
         self.prev_score = np.array([0], dtype=np.int32)
         
@@ -76,8 +79,8 @@ class GameEnvironment:
             self.sem[:] = self.init_sem[:] # Tell C to proceed
         
     def is_done(self):
-        if self.sem[0] < 0 or self.same_reward_counter > 500 or self.ball_info[1]>14.0: #bumper bug?
-            if self.same_reward_counter > 500:
+        if self.sem[0] < 0 or self.same_reward_counter > 700 or self.ball_info[1]>14.0: #bumper bug?
+            if self.same_reward_counter > 700:
                 print("Bumper bug...", end=" ")
             return True
         return False
@@ -85,8 +88,20 @@ class GameEnvironment:
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action
         action =  ["R", "r", "L", "l", "!", ".", "p", "X", "x", "Y", "y"][int_action]
-        self.extra_additive_reward = 0 if action in "RrLl!." else 0
-        self.extra_multiplicative_reward = 1.2 if action in "p" else 1
+        if action == "R":
+            self.rightflipper = True 
+        elif action == "r":
+            self.rightflipper = False
+        elif action == "L":
+            self.leftflipper  = True
+        elif action == "l":
+            self.leftflipper  = False
+        elif action == "p":
+            self.reward_cap   = 1.2
+        else:
+            self.reward_cap   = 1
+        if (self.leftflipper or self.rightflipper):
+            self.reward_cap = -0.01
         if action == self.prev_action:
             action = "p"
         self.prev_action = action
@@ -98,7 +113,7 @@ class GameEnvironment:
             self.same_reward_counter += 1
         else:
             self.same_reward_counter = 0
-        reward = min(reward, self.extra_multiplicative_reward)
+        reward = min(reward, self.reward_cap)
         reward = torch.tensor(reward, dtype=torch.float32)
         reward.to(get_device())
         self.prev_score[:] = self.score[:]

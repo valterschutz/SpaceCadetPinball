@@ -17,7 +17,7 @@ from ballhandler import GameEnvironment
 BUFFER_SIZE = 4000000
 
 class DQN:
-    def __init__(self, action_size=7, gamma=0.99, tau=0.01, lr=0.00025, name=""):
+    def __init__(self, action_size=7, gamma=0.99, tau=1, lr=0.00025, name=""):
 
         # The second part of the Q-network
         self.model = nn.Sequential(
@@ -191,7 +191,7 @@ def train(agent, buffer, batch_size=128,
     total_reward = 0
     loss_count, total_loss = 0, 0
     def get_gamma(ep):
-        return 0.999 - 0.099*np.exp(-ep/500)
+        return 0.997 - 0.097*np.exp(-ep/400)
     done = False
     training_started = False
     while True:
@@ -269,10 +269,10 @@ def print_model_layers(model):
 
 def run_train_loop(agent):
     buffer = PrioritizedReplayBuffer(1, BUFFER_SIZE)
-    train(agent, buffer, batch_size=16, eps_max=1, eps_min=0.5, decrease_eps_steps=500000, test_every_episodes=20)
+    train(agent, buffer, batch_size=32, eps_max=1, eps_min=0.1, decrease_eps_steps=500000, test_every_episodes=8)
 
 if __name__ == "__main__":
-    lr = 1e-6
+    lr = 5e-7
     if len(sys.argv) > 1 and sys.argv[1] == "load":
         name = input("DQN agent to load: ")
         pickle_filename = f"pickles/model_{name}.pkl"
@@ -282,7 +282,7 @@ if __name__ == "__main__":
         # Create a new DQN model if not loading
         # Ask for a name
         name = input("Enter a name for new DQN agent: ")
-        agent = DQN(lr=lr, name=name, gamma=0.95)
+        agent = DQN(lr=lr, name=name)
     agent.optimizer = optim.Adam(agent.model.parameters(), lr=lr)
         
     run_train_loop(agent)

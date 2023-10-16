@@ -1,11 +1,32 @@
 import argparse
 from dqn import DQN
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set_style("whitegrid")
 
 def eval_loop(agent, eps, delay):
     """Evaluate a RL agent with epsilon-greedy policy."""
 
-    while True:
-        agent.play_one_episode(mode="eval", eps=eps, delay=delay)
+    scores = []
+    episodes = 0
+    try:
+        while True:
+            r = agent.play_one_episode(mode="eval", eps=eps, delay=delay)
+            score = r[1]
+            scores.append(score)
+            episodes += 1
+    except:
+        print(f"\nmean score over past {episodes} episodes: {sum(scores)/len(scores)}")
+        plt.figure()
+        sns.lineplot(x=range(1,episodes+1), y=scores)
+        plt.xlabel("Episode")
+        plt.ylabel("Score")
+        plt.title(f"Mean score: {sum(scores)/len(scores)}")
+        plt.show()
+        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Evaluate a RL agent to play pinball")

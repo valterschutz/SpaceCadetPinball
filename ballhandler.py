@@ -108,16 +108,16 @@ class GameEnvironment:
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
-        reward = self.score[0] - self.prev_score[0]
-        if reward == 0:
+        score_diff = self.score[0] - self.prev_score[0]
+        if score_diff == 0:
             self.same_reward_counter += 1
         else:
             self.same_reward_counter = 0
-        reward = min(reward, self.extra_multiplicative_reward)
-        reward = torch.tensor(reward, dtype=torch.float32)
+        reward = min(score_diff, self.extra_multiplicative_reward)
+        reward = torch.tensor(score_diff, dtype=torch.float32)
         reward.to(device)
         self.prev_score[:] = self.score[:]
-        return reward
+        return reward, score_diff
 
     def get_ball_state(self):
         """Get the current ball state (position and velocity, 4 values)."""
@@ -159,7 +159,8 @@ class GameEnvironment:
         # sem is either < 0 or 4 here
         if self.sem[0] >= 1:
             self.sem[:] = self.init_sem[:]
-        state, reward = self.get_state(), self.get_reward()
+        state = self.get_state()
+        reward, score_diff = self.get_reward()
         is_done, is_stuck = self.is_done(), self.is_stuck()
         # Negative reward if we lose
         if is_done or is_stuck:
@@ -168,7 +169,7 @@ class GameEnvironment:
         if action in range(3):
             reward -= 0.01
         self.frame_id += 1
-        return state, reward, is_done, is_stuck
+        return state, reward, score_diff, is_done, is_stuck
 
 # def start_game():
 #     return GameEnvironment(600, 416)

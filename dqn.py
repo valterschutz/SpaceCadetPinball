@@ -203,6 +203,7 @@ class DQN:
         Play one complete episode, either in training mode or evaluation mode,
         optionally with a custom epsilon. Returns:
             the total episode reward
+            the total episode score
             loss
             whether the episode finished 'normally'
             the Q-values found at the start
@@ -216,7 +217,7 @@ class DQN:
         if eps is None:
             eps = self.eps if mode == "train" else self.eps_eval
         is_done, is_stuck = False, False
-        episode_reward, episode_loss = 0, 0
+        episode_reward, episode_score, episode_loss = 0, 0, 0
         episode_len = 0
         while not is_done:
             episode_len += 1
@@ -225,9 +226,10 @@ class DQN:
             action = self.act(env, state.unsqueeze(0), eps=eps)
             
             # Step and optionally save in buffer if training
-            next_state, reward, is_done, is_stuck = env.step(action)
+            next_state, reward, score_diff, is_done, is_stuck = env.step(action)
             is_done = is_done or is_stuck # Also stop if we get stuck
             episode_reward += float(reward)
+            episode_score += float(score_diff)
             if mode == "train":
                 self.buffer.add((state, action, reward, next_state, int(is_done)))
             state = next_state
@@ -245,4 +247,4 @@ class DQN:
 
         # Remove environment and return
         del env
-        return episode_reward, episode_loss, (not is_stuck), initial_Q, episode_len
+        return episode_reward, episode_score, episode_loss, (not is_stuck), initial_Q, episode_len

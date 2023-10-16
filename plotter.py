@@ -28,10 +28,14 @@ def plot_reward(episodes, reward, name):
     plt.figure()
     #plt.plot(episodes[:len(reward)], reward)
     plt.plot(reward)
+    plt.plot(moving_average(reward, 7), linewidth=5)
     #plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.savefig(f'figs/{name}_reward.png')
     plt.close()
+
+def moving_average(data, window_size):
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 def plot_stuff(agent):
     plot_q_values(agent.episodes, agent.q, agent.name)

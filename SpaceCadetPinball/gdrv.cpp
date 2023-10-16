@@ -183,7 +183,7 @@ void gdrv_bitmap8::BlitToTexture()
 	    exit(1);
 	}
 	int* sem = (int*) sem_ptr;
-	while (*sem == 4 || *sem==-1) {} //Wait for sem to be set to 0 by python
+	while (*sem == 1 || *sem==-1) {} //Wait for sem to be set to 0 by python
 	// Write pixels to shared memory
 	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
 	if (pixels_fd==-1) {

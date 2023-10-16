@@ -157,7 +157,7 @@ class GameEnvironment:
             if self.sem[0] < 0:
                 break
         # sem is either < 0 or 4 here
-        if self.sem[0] == 1:
+        if self.sem[0] >= 1:
             self.sem[:] = self.init_sem[:]
         state, reward = self.get_state(), self.get_reward()
         is_done, is_stuck = self.is_done(), self.is_stuck()

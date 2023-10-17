@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--test_every_n_episodes", type=int, default=50, help="How many episodes to wait before evaluating the model again")
     parser.add_argument("--use_target_model", type=int, default=1, help="Whether to use a target model")
     parser.add_argument("--buffer_start", type=int, default=10, help="How much to fill the replay buffer (in terms of batch size) before starting training")
+    parser.add_argument("--n_frames", type=int, default=1, help="How many frames to wait between each action")
     args = parser.parse_args()
     mode = args.mode
     name = args.name
@@ -85,6 +86,8 @@ if __name__ == "__main__":
     test_every_n_episodes = args.test_every_n_episodes
     use_target_model = bool(args.use_target_model)
     buffer_start = args.buffer_start
+    n_frames = args.n_frames
+
     if buffer_start > buffer_size:
         raise Exception("buffer_start cannot be larger than buffer_size")
 
@@ -99,6 +102,7 @@ if __name__ == "__main__":
         buffer_size=buffer_size,
         batch_size=batch_size,
         use_target_model=use_target_model,
+        n_frames=n_frames,
         name=name
     )
 
@@ -119,6 +123,7 @@ if __name__ == "__main__":
     print(f"  buffer_size={buffer_size}")
     print(f"  batch_size={batch_size}")
     print(f"  use_target_model={use_target_model}")
+    print(f"  n_frames={n_frames}")
     print(f"  buffer filled {agent.buffer.real_size}/{agent.buffer.size}")
     print(f"  name={name}")
 

@@ -17,8 +17,8 @@ ACTION_SIZE = 4
 class DQN:
     def __init__(self, gamma=0.99, tau=0.01, lr=0.00025,
                  eps_min=0.2, eps_max=1, eps_eval=0.1,
-                 eps_decay_per_episode=1e-4, buffer_size=4000000, batch_size=32,use_target_model=True,
-                 env_fun=lambda : GameEnvironment(600, 416), name=""):
+                 eps_decay_per_episode=1e-4, buffer_size=4000000, batch_size=32,use_target_model=True, n_frames=1,
+                 env_fun=lambda x: GameEnvironment(600, 416,  x), name=""):
 
         # The second part of the Q-network
         self.model = self.get_new_model()

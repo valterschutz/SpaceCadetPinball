@@ -13,7 +13,7 @@ class ActionSpace:
         return random.choice(self.space)
 
 class GameEnvironment:
-    def __init__(self, width, height, plotter=None):
+    def __init__(self, width, height, n_frames, plotter=None):
         self.width = width
         self.height = height
         self.save_width = width//2
@@ -26,6 +26,7 @@ class GameEnvironment:
         self.left_flipper_up = False
         self.right_flipper_up = False
         self.plunger_down = False
+        self.n_frames = n_frames
 
         self.prev_score = np.array([0], dtype=np.int32)
         
@@ -152,11 +153,11 @@ class GameEnvironment:
         self.action[:] = self.int_to_c_action(action)[:]
         # Update our internal representation of flipper and plunger
         self.update_toggles(action)
-        while self.sem[0] != 1:
+        while self.sem[0] != self.n_frames:
             if self.sem[0] < 0:
                 break
         # sem is either < 0 or 4 here
-        if self.sem[0] == 1:
+        if self.sem[0] == self.n_frames:
             self.sem[:] = self.init_sem[:]
         state = self.get_state()
         reward, score_diff = self.get_reward()
@@ -167,7 +168,7 @@ class GameEnvironment:
         # Negative reward if we take actions
         if action in range(3):
             reward -= 0.1
-        self.frame_id += 1
+        self.frame_id += self.n_frames
         return state, reward, score_diff, is_done, is_stuck
 
 # def start_game():

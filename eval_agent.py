@@ -47,13 +47,15 @@ if __name__ == '__main__':
     parser.add_argument("--episodes", type=int, default=None, help="How many episodes to play")
     parser.add_argument("--eps", type=float, default=0.1, help="Which epsilon to use for evaluation")
     parser.add_argument("--delay", type=float, default=0.02, help="How many seconds to wait between each step in the simulation")
+    parser.add_argument("--n_frames", type=int, default=1, help="How many frames to wait between each action")
     args = parser.parse_args()
     name = args.name
     episodes = args.episodes
     eps = args.eps
     delay = args.delay
+    n_frames = args.n_frames
 
-    agent = DQN(name=name)
+    agent = DQN(name=name, n_frames=n_frames)
     agent.load()
 
     eval_loop(agent, episodes, eps, delay)

@@ -14,6 +14,9 @@
 #include <sys/stat.h>   // for mode constants
 #include <unistd.h>     // for close
 
+const char* myFlag = std::getenv("N_FRAMES");
+const int n_frames = atoi(myFlag);
+
 void extract_red_pixels(uint8_t* red, ColorRgba* img, size_t h, size_t w) {
 	uint8_t* rgba = (uint8_t*) img;
     	for (size_t row_idx = 0; row_idx < h; row_idx++) {
@@ -183,7 +186,7 @@ void gdrv_bitmap8::BlitToTexture()
 	    exit(1);
 	}
 	int* sem = (int*) sem_ptr;
-	while (*sem == 1 || *sem==-1) {} //Wait for sem to be set to 0 by python
+	while (*sem == n_frames || *sem==-1) {} //Wait for sem to be set to 0 by python
 	// Write pixels to shared memory
 	int pixels_fd = shm_open("/pixels", O_RDWR, 0666);
 	if (pixels_fd==-1) {

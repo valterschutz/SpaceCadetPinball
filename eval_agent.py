@@ -32,11 +32,15 @@ def eval_loop(agent, episodes, eps, delay):
             raise Exception("go to except")
     except:
         print(f"\nmean score over past {episodes} episodes: {sum(scores)/len(scores)}")
-        plt.figure()
-        sns.lineplot(x=range(1,episode+1), y=scores)
-        plt.xlabel("Episode")
-        plt.ylabel("Score")
-        plt.title(f"Mean score: {sum(scores)/len(scores)}")
+        fig, axes = plt.subplots(1,2)
+        sns.lineplot(x=range(1,episode+1), y=scores, ax=axes[0])
+        axes[0].set_xlabel("Episode")
+        axes[0].set_ylabel("Score")
+        axes[0].set_title(f"Mean score: {sum(scores)/len(scores)}")
+        sns.histplot(np.log10(scores), kde=True, ax=axes[1])
+        axes[1].set_xlabel("log10(score)")
+        axes[1].set_ylabel("Frequency")
+        axes[1].set_title("Score histogram")
         plt.show()
         
 

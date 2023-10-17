@@ -34,7 +34,7 @@ class DQN:
         self.eps = eps_max
         self.eps_eval = eps_eval
 
-        self.env_fun = env_fun # Called each time to start new episode
+        self.env_fun = lambda : env_fun(n_frames) # Called each time to start new episode
 
         if self.use_target_model:
             self.target_model = self.get_new_target_model()

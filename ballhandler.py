@@ -1,4 +1,6 @@
 import subprocess
+import pdb
+import os
 import numpy as np
 from multiprocessing import shared_memory
 import torch
@@ -68,8 +70,12 @@ class GameEnvironment:
         return arr
 
     def start_game(self):
+        # Create a dictionary to hold the environment variables
+        env = dict(os.environ)
+        env["N_FRAMES"] = str(self.n_frames)
+
         c_program_path = './bin/SpaceCadetPinball'
-        return subprocess.Popen([c_program_path])
+        return subprocess.Popen(c_program_path, shell=True, env=env)
 
     def fast_forward_frames(self, n):
         for _ in range(n):

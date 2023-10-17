@@ -79,9 +79,10 @@ class GameEnvironment:
             self.sem[:] = self.init_sem[:] # Tell C to proceed
         
     def is_done(self):
-        if self.sem[0] < 0 or self.same_reward_counter > 700 or self.ball_info[1]>14.0: #bumper bug?
-            if self.same_reward_counter > 700:
-                print("Bumper bug...", end=" ")
+        # if self.sem[0] < 0 or self.same_reward_counter > 700 or self.ball_info[1]>14.0: #bumper bug?
+        if self.sem[0] < 0:
+            # if self.same_reward_counter > 700:
+            #     print("Bumper bug...", end=" ")
             return True
         return False
 

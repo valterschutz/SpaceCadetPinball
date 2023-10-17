@@ -28,11 +28,11 @@ def eval_agent(agent, episodes=None):
             state, reward = agent.step(env,action)
             done = env.is_done()
             total_reward += reward
-            time.sleep(0.03)
+            # time.sleep(0.03)
         returns.append(total_reward)
         print("")
         del env
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
 if __name__ == '__main__':
     name = input("DQN agent to eval: ")

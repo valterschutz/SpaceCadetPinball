@@ -75,7 +75,7 @@ TPinballTable::TPinballTable(): TPinballComponent(nullptr, -1, false)
 
 	CurrentPlayer = 0;
 	MaxBallCount = 3;
-	MaxBallCount = 1; // COMMENT/UNCOMMENT
+	// MaxBallCount = 1; // COMMENT/UNCOMMENT
 	ScoreBallcount = score::create("ballcount1", render::background_bitmap);
 	ScorePlayerNumber1 = score::create("player_number1", render::background_bitmap);
 	int groupIndexObjects = loader::query_handle("table_objects");
@@ -578,7 +578,8 @@ int TPinballTable::Message(MessageCode code, float value)
 		ScoreMultiplier = 0;
 		ScoreAdded = 0;
 		ReflexShotScore = 0;
-		BonusScore = 0;
+		// BonusScore = 0;
+		BonusScore = 10000;  // COMMENT/UNCOMMENT
 		BonusScoreFlag = false;
 		JackpotScore = 20000;
 		JackpotScoreFlag = false;

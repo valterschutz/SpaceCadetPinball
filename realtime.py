@@ -1,6 +1,6 @@
 import numpy as np
-from gamehandler import GameEnvironment
-from gg import DQN
+from ballhandler import GameEnvironment
+from ballgg import DQN
 import pygame
 import sys
 import glob
@@ -8,6 +8,8 @@ import os
 import pickle
 import time
 from cnn import device
+import itertools
+import random
 
 # Replace this with your actual matrix
 """
@@ -35,10 +37,12 @@ class RealtimePlotter():
         self.clock = pygame.time.Clock()
         self.fps = 24
 
+        self.agent = agent
+
 
     def run_animation(self):
         running = True
-        for Qs in evaluate_policy(self.agent) and running:
+        for Qs in evaluate_policy(self.agent):
             # Check if user trying to close window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -101,7 +105,7 @@ def evaluate_policy(agent, episodes=None):
             if random.random() < eps:
                 action = env.action_space.sample()
             else:
-                action = agent.act(state.unsqueeze(0))
+                action = agent.act(env, state.unsqueeze(0), eps)
             yield get_qs(agent, state)
             state, reward = env.step(action)
             done = env.is_done()
@@ -122,3 +126,5 @@ with open(latest_model_file, "rb") as file:
     agent.model = agent.model.to(device)
 print(f"Loaded {latest_model_file}...")
 
+realtime = RealtimePlotter(agent)
+realtime.run_animation()

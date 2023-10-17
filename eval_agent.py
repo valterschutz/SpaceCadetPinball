@@ -1,23 +1,59 @@
 import argparse
 from dqn import DQN
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from tqdm import tqdm
 
-def eval_loop(agent, eps, delay):
+sns.set_style("whitegrid")
+
+def eval_loop(agent, episodes, eps, delay):
     """Evaluate a RL agent with epsilon-greedy policy."""
 
-    while True:
-        agent.play_one_episode(mode="eval", eps=eps, delay=delay)
+    scores = []
+    episode = 0
+
+    def loop():
+        nonlocal episode, scores
+        r = agent.play_one_episode(mode="eval", eps=eps, delay=delay)
+        score = r[1]
+        scores.append(score)
+        episode += 1
+
+    try:
+        if episodes is None:
+            while True:
+                loop()
+        else:
+            with tqdm(initial=0, total=episodes) as pbar:
+                while episode < episodes:
+                    loop()
+                    pbar.update(1)
+            raise Exception("go to except")
+    except:
+        print(f"\nmean score over past {episodes} episodes: {sum(scores)/len(scores)}")
+        plt.figure()
+        sns.lineplot(x=range(1,episode+1), y=scores)
+        plt.xlabel("Episode")
+        plt.ylabel("Score")
+        plt.title(f"Mean score: {sum(scores)/len(scores)}")
+        plt.show()
+        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Evaluate a RL agent to play pinball")
     parser.add_argument("name", help="Name of model")
+    parser.add_argument("--episodes", type=int, default=None, help="How many episodes to play")
     parser.add_argument("--eps", type=float, default=0.1, help="Which epsilon to use for evaluation")
     parser.add_argument("--delay", type=float, default=0.02, help="How many seconds to wait between each step in the simulation")
     args = parser.parse_args()
     name = args.name
+    episodes = args.episodes
     eps = args.eps
     delay = args.delay
 
     agent = DQN(name=name)
     agent.load()
 
-    eval_loop(agent, eps, delay)
+    eval_loop(agent, episodes, eps, delay)

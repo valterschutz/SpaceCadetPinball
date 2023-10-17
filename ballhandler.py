@@ -156,7 +156,7 @@ class GameEnvironment:
             if self.sem[0] < 0:
                 break
         # sem is either < 0 or 4 here
-        if self.sem[0] >= 1:
+        if self.sem[0] == 1:
             self.sem[:] = self.init_sem[:]
         state = self.get_state()
         reward, score_diff = self.get_reward()
@@ -166,7 +166,7 @@ class GameEnvironment:
             reward -= 1
         # Negative reward if we take actions
         if action in range(3):
-            reward -= 0.01
+            reward -= 0.1
         self.frame_id += 1
         return state, reward, score_diff, is_done, is_stuck
 

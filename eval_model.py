@@ -16,6 +16,7 @@ def eval_agent(agent, episodes=None):
         iter = range(episodes)
     
     returns = []
+    scores = []
     eps = 0.1
 
     for ep in iter:
@@ -30,9 +31,11 @@ def eval_agent(agent, episodes=None):
             total_reward += reward
             # time.sleep(0.03)
         returns.append(total_reward)
+        scores.append(env.score[0])
         print("")
         del env
         # time.sleep(0.1)
+    return scores
 
 if __name__ == '__main__':
     name = input("DQN agent to eval: ")
@@ -41,4 +44,7 @@ if __name__ == '__main__':
         agent = pickle.load(file)
     agent.model = agent.model.to(device)
 
-    eval_agent(agent)
+    scores = eval_agent(agent)
+    with open(f"pickles/perf_{name}.pkl", "wb") as file:
+        pickle.dump(scores, file)
+    print(f"Scores pickled.")

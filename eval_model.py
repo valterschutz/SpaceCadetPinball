@@ -1,4 +1,5 @@
 import time
+import sys
 import itertools
 import random
 from ballhandler import GameEnvironment
@@ -38,13 +39,14 @@ def eval_agent(agent, episodes=None):
     return scores
 
 if __name__ == '__main__':
-    name = input("DQN agent to eval: ")
+    name = sys.argv[1]
+    episodes = int(sys.argv[2])
     pickle_filename = f"pickles/model_{name}.pkl"
     with open(pickle_filename, "rb") as file:
         agent = pickle.load(file)
     agent.model = agent.model.to(device)
 
-    scores = eval_agent(agent)
+    scores = eval_agent(agent, episodes)
     with open(f"pickles/perf_{name}.pkl", "wb") as file:
         pickle.dump(scores, file)
     print(f"Scores pickled.")

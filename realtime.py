@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from ballhandler import GameEnvironment
 from ballgg import DQN
 import pygame
@@ -26,7 +27,7 @@ class RealtimePlotter():
         pygame.display.set_caption("SpaceCadet live Q-value barplot")
 
         # Colors & text
-        self.colors = [(255, 0, 50), (255, 50, 0), (50, 255, 0), (0, 255, 50), (0, 100, 255), (100, 0, 255), (150, 150, 150)]
+        self.colors = np.array([(255, 0, 50), (255, 50, 0), (50, 255, 0), (0, 255, 50), (0, 100, 255), (100, 0, 255), (150, 150, 150)])
         self.labels = ["Right flipper", "Left flipper", "Plunger"]
         self.sublabels = ["Up", "Down", "Up", "Down", "Pull", "Release", "Wait"]
         self.smallfont = pygame.font.Font(None, 25)
@@ -35,14 +36,21 @@ class RealtimePlotter():
 
         # Control animation speed
         self.clock = pygame.time.Clock()
-        self.fps = 24
-
+        self.fps = 60
         self.agent = agent
 
 
     def run_animation(self):
         running = True
         for Qs in evaluate_policy(self.agent):
+            # Qs = Qs / np.max(Qs)
+            Qs = Qs / 3
+            Qs_argmax = np.argmax(Qs)
+
+            # Reshuffle Q and labels to show left flipper first
+            Qs[0], Qs[1] = Qs[1], Qs[0]
+            labels = self.labels.copy()
+            labels[0], labels[1] = labels[1], labels[0]
             # Check if user trying to close window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -54,7 +62,7 @@ class RealtimePlotter():
             self.screen.blit(header_text, (330, 50))
             
             # Right flipper, Left flipper, Plunger
-            for j, label in enumerate(self.labels):
+            for j, label in enumerate(labels):
                 x = 110 + j * 210
                 label_text = self.mediumfont.render(label, True, (255, 255, 255))
                 self.screen.blit(label_text, (x, 450))
@@ -65,7 +73,7 @@ class RealtimePlotter():
                 y = 400 - value * 300
                 w = 50
                 h = value * 300
-                pygame.draw.rect(self.screen, self.colors[j], (x, y, w, h))
+                pygame.draw.rect(self.screen, self.colors[j] / (1 if j == Qs_argmax else 2), (x, y, w, h))
 
                 # Draw labels
                 if self.sublabels[j] == "Up":
@@ -77,13 +85,13 @@ class RealtimePlotter():
 
             # Control speed
             pygame.display.flip()
-            clock.tick(fps)
+            self.clock.tick(self.fps)
 
         pygame.quit()
 
 def get_qs(agent, state):
     with torch.no_grad():
-        state = torch.as_tensor(state, dtype=torch.float).to(device())
+        state = torch.as_tensor(state, dtype=torch.float).to(device)
         return agent.model(state.unsqueeze(0)).cpu().numpy()[0]
 
 def evaluate_policy(agent, episodes=None):
@@ -94,37 +102,33 @@ def evaluate_policy(agent, episodes=None):
     else:
         iter = range(episodes)
     
-    eps = 0.3
+    eps = 0.1
     Qs = []
 
     for ep in iter:
         env = GameEnvironment(600, 416)
         done, total_reward = False, 0
-        state = env.get_state()
+        state = agent.get_state(env)
         while not done:
-            if random.random() < eps:
-                action = env.action_space.sample()
-            else:
-                action = agent.act(env, state.unsqueeze(0), eps)
+            action = agent.act(env, state.unsqueeze(0), eps)
             yield get_qs(agent, state)
-            state, reward = env.step(action)
+            state, reward = agent.step(env, action)
             done = env.is_done()
         del env
         time.sleep(0.1)
     return None
 
 
-model_directory = "pickles"
-model_files = glob.glob(os.path.join(model_directory, "model_*.pkl"))
-model_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-if len(sys.argv) > 1:
-    latest_model_file = sys.argv[1]
-else:
-    latest_model_file = model_files[0]
-with open(latest_model_file, "rb") as file:
-    agent = pickle.load(file)
-    agent.model = agent.model.to(device)
-print(f"Loaded {latest_model_file}...")
+model_name = sys.argv[1]
+# model_filename = f"pickles/model_{model_name}.pkl"
+weights_path = f"weights/{model_name}.pth"
+# with open(model_filename, "rb") as file:
+#     agent = pickle.load(file)
+#     agent.model = agent.model.to(device)
+#     agent.target_model = agent.target_model.to(device)
+agent = DQN()
+agent.model.load_state_dict(torch.load(weights_path))
+print(f"Loaded {model_name}...")
 
 realtime = RealtimePlotter(agent)
 realtime.run_animation()

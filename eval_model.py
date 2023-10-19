@@ -24,6 +24,7 @@ def eval_agent(agent, episodes=None):
         env = GameEnvironment(600, 416)
         done, total_reward = False, 0
         state = agent.get_state(env)
+        is_stuck = False
         while not done:
             action = agent.act(env, state.unsqueeze(0), eps)
             # state, reward = env.step(action)
@@ -31,11 +32,13 @@ def eval_agent(agent, episodes=None):
             done, msg = env.is_done()
             total_reward += reward
             # time.sleep(0.03)
-        if msg == "bumper":
-            continue
-        returns.append(total_reward)
-        scores.append(env.score[0])
-        print("")
+            if msg == "bumper":
+                is_stuck = True
+        if not is_stuck:
+            returns.append(total_reward)
+            score = env.score[0]
+            scores.append(score)
+            print(ep, score)
         del env
         # time.sleep(0.1)
     return scores

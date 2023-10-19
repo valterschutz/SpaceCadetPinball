@@ -80,11 +80,13 @@ class GameEnvironment:
         
     def is_done(self):
         # if self.sem[0] < 0 or self.same_reward_counter > 700 or self.ball_info[1]>14.0: #bumper bug?
-        if self.sem[0] < 0 or self.same_reward_counter > 700:
+        if self.sem[0] < 0:
+            return True, "game end"
+        elif self.same_reward_counter > 700:
             # if self.same_reward_counter > 700:
             #     print("Bumper bug...", end=" ")
-            return True
-        return False
+            return True, "bumper"
+        return False, None
 
     def int_to_c_action(self, int_action):
         # right flipper, left flipper, plunger, tilt left, tilt right, no action

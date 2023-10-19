@@ -28,9 +28,11 @@ def eval_agent(agent, episodes=None):
             action = agent.act(env, state.unsqueeze(0), eps)
             # state, reward = env.step(action)
             state, reward = agent.step(env,action)
-            done = env.is_done()
+            done, msg = env.is_done()
             total_reward += reward
             # time.sleep(0.03)
+        if msg == "bumper":
+            continue
         returns.append(total_reward)
         scores.append(env.score[0])
         print("")

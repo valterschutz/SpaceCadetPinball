@@ -1,7 +1,7 @@
 <!-- markdownlint-disable-file MD033 -->
 
 # Q-learning SpaceCadetPinball
-Training of a DQN agent on the game [SpaceCadetPinball](https://github.com/k4zmu2a/SpaceCadetPinball).
+Training and evaluation of a DQN agent on the game [SpaceCadetPinball](https://github.com/k4zmu2a/SpaceCadetPinball).
 
 ## Instructions
 Build the game first using `cmake .` and then `make`.

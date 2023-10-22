@@ -18,7 +18,7 @@ def eval_agent(agent, episodes=None):
     
     returns = []
     scores = []
-    eps = 0.1
+    eps = 0.01
 
     for ep in iter:
         env = GameEnvironment(600, 416)
@@ -29,6 +29,7 @@ def eval_agent(agent, episodes=None):
             action = agent.act(env, state.unsqueeze(0), eps)
             # state, reward = env.step(action)
             state, reward = agent.step(env,action)
+            time.sleep(0.03)
             done, msg = env.is_done()
             total_reward += reward
             # time.sleep(0.03)

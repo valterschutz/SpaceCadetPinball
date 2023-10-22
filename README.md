@@ -6,6 +6,8 @@ Training and evaluation of a DQN agent on the game [SpaceCadetPinball](https://g
 ## Instructions
 Build the game first using `cmake .` and then `make`.
 
+---
+
 Train the agent using `train_agent.py`:
 ```
 usage: train_agent.py [-h] [--gamma GAMMA] [--tau TAU] [--lr LR] [--eps_min EPS_MIN] [--eps_max EPS_MAX] [--eps_eval EPS_EVAL]                                              

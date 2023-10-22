@@ -1,11 +1,10 @@
 import subprocess
-import pdb
 import os
 import numpy as np
 from multiprocessing import shared_memory
 import torch
 import random
-from cnn import device
+from lib import device
 
 class ActionSpace:
     def __init__(self, num_actions):
@@ -107,9 +106,6 @@ class GameEnvironment:
         else:
             raise Exception(f"Unknown int_action: {int_action}")
 
-        # self.extra_additive_reward = 0 if action in "RrLl!." else 0
-        # self.extra_multiplicative_reward = 1.2 if action in "p" else 1
-        # self.prev_action = action
         return np.array([ord(action)], dtype=np.uint8)
 
     def get_reward(self):
@@ -154,8 +150,6 @@ class GameEnvironment:
         # 1: toggle right flipper
         # 2: toggle plunger
         # 3: do nothing
-        # if self.frame_id % 100 == 0:
-            # print(f"      Frame {self.frame_id}, Score {self.score[0]}")
         self.action[:] = self.int_to_c_action(action)[:]
         # Update our internal representation of flipper and plunger
         self.update_toggles(action)
@@ -176,6 +170,3 @@ class GameEnvironment:
             reward -= 0.1
         self.frame_id += self.n_frames
         return state, reward, score_diff, is_done, is_stuck
-
-# def start_game():
-#     return GameEnvironment(600, 416)

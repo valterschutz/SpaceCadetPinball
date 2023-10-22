@@ -50,7 +50,7 @@ if __name__ == '__main__':
     parser.add_argument("name", help="Name of model")
     parser.add_argument("--episodes", type=int, default=None, help="How many episodes to play")
     parser.add_argument("--eps", type=float, default=0.1, help="Which epsilon to use for evaluation")
-    parser.add_argument("--delay", type=float, default=0.02, help="How many seconds to wait between each step in the simulation")
+    parser.add_argument("--delay", type=float, default=0.01, help="How many seconds to wait between each step in the simulation")
     parser.add_argument("--n_frames", type=int, default=1, help="How many frames to wait between each action")
     args = parser.parse_args()
     name = args.name

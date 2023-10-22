@@ -1,4 +1,3 @@
-import pdb
 import pickle
 import numpy as np
 import time
@@ -9,8 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 from copy import deepcopy
 from ballbuffer import PrioritizedReplayBuffer
-from cnn import device
 from ballhandler import GameEnvironment
+from lib import device
 
 ACTION_SIZE = 4
 

@@ -1,3 +1,0 @@
-Sätt konstant tidssteg i winmail MainLoop
-
-Skriv till replay buffer med högre sannolikhet om boll är nära flipprarna eller i plungern

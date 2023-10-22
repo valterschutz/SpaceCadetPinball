@@ -5,11 +5,6 @@
 # Ignore pickled buffer
 saves/*.pkl
 
-gg/*
-gg_frozen_conv/*
-dqn_models/*
-ale/figures/*
-
 # User-specific files
 *.suo
 *.user

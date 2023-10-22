@@ -42,7 +42,20 @@ options:
   --n_frames N_FRAMES   How many frames to wait between each action
 ```
 
-Evaluate it using `eval_agent.py`:
+Data is gathered during training and can be visualized with `plotter.py`:
+```
+usage: plotter.py [-h] name
+
+Plot data gathered from a RL agent playing pinball
+
+positional arguments:
+  name        Name of model
+
+options:
+  -h, --help  show this help message and exit
+```
+
+Evaluate the agent and see how it plays using `eval_agent.py`:
 ```
 usage: eval_agent.py [-h] [--episodes EPISODES] [--eps EPS] [--delay DELAY] [--n_frames N_FRAMES] name
 

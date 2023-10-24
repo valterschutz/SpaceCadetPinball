@@ -73,3 +73,8 @@ options:
   --delay DELAY        How many seconds to wait between each step in the simulation
   --n_frames N_FRAMES  How many frames to wait between each action
 ```
+
+## Links
+- [Video example](https://github.com/valterschutz/SpaceCadetPinball/blob/master/example.webm)
+- [Report](https://github.com/valterschutz/SpaceCadetPinball/blob/master/report.pdf)
+- [Poster](https://github.com/valterschutz/SpaceCadetPinball/blob/master/poster.pdf)

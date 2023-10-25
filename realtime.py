@@ -12,13 +12,6 @@ from cnn import device
 import itertools
 import random
 
-# Replace this with your actual matrix
-"""
-matrix = np.load("qs_tmp.npy")
-matrix = matrix / (3*np.mean(matrix))
-n = matrix.shape[0
-]
-"""
 class RealtimePlotter():
     def __init__(self, agent):
         # Window
@@ -113,19 +106,14 @@ def evaluate_policy(agent, episodes=None):
             action = agent.act(env, state.unsqueeze(0), eps)
             yield get_qs(agent, state)
             state, reward = agent.step(env, action)
-            done = env.is_done()
+            (done, msg) = env.is_done()
         del env
         time.sleep(0.1)
     return None
 
 
 model_name = sys.argv[1]
-# model_filename = f"pickles/model_{model_name}.pkl"
 weights_path = f"weights/{model_name}.pth"
-# with open(model_filename, "rb") as file:
-#     agent = pickle.load(file)
-#     agent.model = agent.model.to(device)
-#     agent.target_model = agent.target_model.to(device)
 agent = DQN()
 agent.model.load_state_dict(torch.load(weights_path))
 print(f"Loaded {model_name}...")
